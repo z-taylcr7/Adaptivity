@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #
@@ -29,3 +29,7 @@
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
 from .on_policy_runner import OnPolicyRunner
+from .dual_policy_runner import DualPolicyRunner
+from .teacher_policy_runner import TeacherPolicyRunner
+from .student_policy_runner import StudentPolicyRunner
+from .transformer_policy_runner import TransformerPolicyRunner
