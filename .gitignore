@@ -3,3 +3,4 @@ logs/
 plotscripts/
 isaacgym/
 resources/
+__pycache__/

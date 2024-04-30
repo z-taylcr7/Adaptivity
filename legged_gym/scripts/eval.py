@@ -46,19 +46,7 @@ import torch
 import argparse
 
 tracking_errors = {}
-# labels = [
-# old version
-# "cmd_-1.0",  # 0-4
-# "cmd_0.2",  # 5-9 # 0.2,0.2
-# "cmd_0.4",  # 10-14 # 0.4,0.4
-# "cmd_0.8",  # 15-19 # 0.8,0.8
-# "cmd.1.6",  # 20-24
-# "cmd_2.0",  # 25-29
-# "cmd_3.0",  # 30-34
-# "fri_0.1",  # 35-39  # 0.1
-# "fri_2.0",  # 40-44  # 1.5
-# "mas",  # 45-49 # 1.0-1.5
-# ]
+
 # envs_per_label = 4
 # load_run = "dual_transformer/y=12_l=66_v=3.0_b=2_direct"
 # load_run = "dual_transformer/y=12_l=66_v=3.0_direct"
@@ -91,6 +79,7 @@ def play(args):
 
     # if terrain_idx == None:
     env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.1, 0.1, 0.2]
+    # env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
     # else:
     #     env_cfg.terrain.terrain_proportions = [0, 0, 0, 0, 0, 0]
     #     env_cfg.terrain.terrain_proportions[terrain_idx] = 1
@@ -150,7 +139,7 @@ def play(args):
     stop_rew_log = (
         env.max_episode_length + 1
     )  # number of steps before print average episode rewards
-    eval_laps = 10
+    eval_laps = 2
     camera_position = np.array(env_cfg.viewer.pos, dtype=np.float64)
     camera_vel = np.array([1.0, 1.0, 0.0])
     camera_direction = np.array(env_cfg.viewer.lookat) - np.array(env_cfg.viewer.pos)
@@ -181,9 +170,6 @@ def play(args):
             else:
                 latent = encoder(trajectory_history)
 
-            # if encoder.net_type == "transformer" and encoder.direct_act:
-            #     actions = latent
-            # else:
             concat_obs = torch.concat(
                 (
                     trajectory_history[:, -1:, :obs_dim].flatten(1),
@@ -253,7 +239,7 @@ def play(args):
                 }
             )
         elif i == stop_state_log:
-            # logger.plot_states()
+            logger.plot_states()
             pass
         if 0 < i < stop_rew_log:
             if infos["episode"]:
@@ -282,19 +268,12 @@ def play(args):
 
 
 if __name__ == "__main__":
-    EXPORT_POLICY = False
+    EXPORT_POLICY = True
     RECORD_FRAMES = False
-    MOVE_CAMERA = True
+    MOVE_CAMERA = False
     args = get_args()
     EVAL = args.eval_mode != "-1"
     print(args.load_run)
-    # eval_type: 0: terrain, 1: friction, 2: mass, 3: noise, 4: push
-    # label = args.eval_type
-    # terrain_idx = label.split("_")[0].split("=")[1]
-    # friction = label.split("_")[1].split("=")[1]
-    # add_mass = label.split("_")[2].split("=")[1]
-    # add_noise = label.split("_")[3].split("=")[1]
-    # push_robots = label.split("_")[4].split("=")[1]
 
     if EVAL:
         tracking_errors, labels, envs_per_label = play(args)

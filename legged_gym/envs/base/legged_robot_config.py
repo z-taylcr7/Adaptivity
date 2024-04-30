@@ -94,14 +94,14 @@ class LeggedRobotCfg(BaseConfig):
         heading_command = True  # if true: compute ang vel command from heading error
 
         class ranges:
+            # lin_vel_x = [-1.0, 3.0]  # min max [m/s]
+            # lin_vel_y = [-1.0, 1.0]  # min max [m/s]
+            # ang_vel_yaw = [-1, 1]  # min max [rad/s]
+            # heading = [-3.14, 3.14]
             lin_vel_x = [-1.0, 1.0]  # min max [m/s]
             lin_vel_y = [-0.1, 0.1]  # min max [m/s]
             ang_vel_yaw = [-1, 1]  # min max [rad/s]
             heading = [-3.14, 3.14]
-            # lin_vel_x = [0.0, 1.0]  # min max [m/s]
-            # lin_vel_y = [0.0, 1.0]  # min max [m/s]
-            # ang_vel_yaw = [0, 0]  # min max [rad/s]
-            # heading = [0, 0]
 
     class init_state:
         pos = [0.0, 0.0, 1.0]  # x,y,z [m]
@@ -158,7 +158,7 @@ class LeggedRobotCfg(BaseConfig):
 
     class rewards:
         class scales:
-            termination = -10.0  #
+            termination = -10.0  # -10.0
             tracking_lin_vel = 1.0
             tracking_ang_vel = 0.5
             lin_vel_z = -2.0  #
@@ -259,10 +259,10 @@ class LeggedRobotCfg(BaseConfig):
         command_scales_vel_y = [-1.5, 0.0, 1.5]
 
         # 3) friction test [15:20]
-        friction_scales = [0.1, 1.0, 2.0, 5.0, 15.0]
+        friction_scales = [0.01, 0.1, 1.0, 2.0, 5.0]
 
         # 4) add mass test [20:25]
-        add_mass_scales = [-2.5, 0.5, 5.0, 10.0, 25.0]
+        add_mass_scales = [-2.5, 0.5, 2.5, 5.0, 10.0]
         # 5) frequent pushing test
         # 6) hard terrain test
         # todo

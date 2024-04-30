@@ -856,12 +856,24 @@ class LeggedRobot(BaseTask):
         self.default_dof_pos = torch.zeros(
             self.num_dof, dtype=torch.float, device=self.device, requires_grad=False
         )
-        
+
         # contacts
-        
-        self.last_contacts = torch.zeros(self.num_envs, len(self.feet_indices), dtype=torch.bool, device=self.device, requires_grad=False)
-        self.contact_filt = torch.zeros(self.num_envs, len(self.feet_indices), dtype=torch.bool, device=self.device, requires_grad=False)
-        
+
+        self.last_contacts = torch.zeros(
+            self.num_envs,
+            len(self.feet_indices),
+            dtype=torch.bool,
+            device=self.device,
+            requires_grad=False,
+        )
+        self.contact_filt = torch.zeros(
+            self.num_envs,
+            len(self.feet_indices),
+            dtype=torch.bool,
+            device=self.device,
+            requires_grad=False,
+        )
+
         for i in range(self.num_dofs):
             name = self.dof_names[i]
             angle = self.cfg.init_state.default_joint_angles[name]
