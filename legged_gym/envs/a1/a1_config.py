@@ -64,13 +64,7 @@ class A1RoughCfg(LeggedRobotCfg):
         name = "a1"
         foot_name = "foot"
         penalize_contacts_on = ["thigh", "calf"]
-        terminate_after_contacts_on = [
-            "base",
-            "FL_thigh",
-            "RL_thigh",
-            "FR_thigh",
-            "RR_thigh",
-        ]
+        terminate_after_contacts_on = ["base"]
         self_collisions = 1  # 1 to disable, 0 to enable...bitwise filter
 
     class rewards(LeggedRobotCfg.rewards):

@@ -94,14 +94,14 @@ class LeggedRobotCfg(BaseConfig):
         heading_command = True  # if true: compute ang vel command from heading error
 
         class ranges:
-            # lin_vel_x = [-1.0, 3.0]  # min max [m/s]
-            # lin_vel_y = [-1.0, 1.0]  # min max [m/s]
-            # ang_vel_yaw = [-1, 1]  # min max [rad/s]
-            # heading = [-3.14, 3.14]
-            lin_vel_x = [-1.0, 1.0]  # min max [m/s]
-            lin_vel_y = [-0.1, 0.1]  # min max [m/s]
+            lin_vel_x = [-1.0, 3.0]  # min max [m/s]
+            lin_vel_y = [-1.0, 1.0]  # min max [m/s]
             ang_vel_yaw = [-1, 1]  # min max [rad/s]
             heading = [-3.14, 3.14]
+            # lin_vel_x = [-1.0, 1.0]  # min max [m/s]
+            # lin_vel_y = [-0.1, 0.1]  # min max [m/s]
+            # ang_vel_yaw = [-1, 1]  # min max [rad/s]
+            # heading = [-3.14, 3.14]
 
     class init_state:
         pos = [0.0, 0.0, 1.0]  # x,y,z [m]
@@ -158,7 +158,7 @@ class LeggedRobotCfg(BaseConfig):
 
     class rewards:
         class scales:
-            termination = -10.0  # -10.0
+            termination = -1.0  # -10.0
             tracking_lin_vel = 1.0
             tracking_ang_vel = 0.5
             lin_vel_z = -2.0  #
@@ -177,10 +177,10 @@ class LeggedRobotCfg(BaseConfig):
         only_positive_rewards = True  # if true negative total rewards are clipped at zero (avoids early termination problems)
         tracking_sigma = 0.25  # tracking reward = exp(-error^2/sigma)
         soft_dof_pos_limit = (
-            0.9  # percentage of urdf limits, values above this limit are penalized
+            1.0  # percentage of urdf limits, values above this limit are penalized
         )
-        soft_dof_vel_limit = 0.9
-        soft_torque_limit = 0.8
+        soft_dof_vel_limit = 1.0
+        soft_torque_limit = 1.0
         base_height_target = 1.0
         max_contact_force = 100.0  # forces above this value are penalized
 
@@ -281,7 +281,7 @@ class LeggedRobotCfgPPO(BaseConfig):
         # rnn_type = 'lstm'
         # rnn_hidden_size = 512
         # rnn_num_layers = 1
-        net_type = "transformer"  # can be mlp, lstm, gru, cnn, transformer
+        net_type = "cnn"  # can be mlp, lstm, gru, cnn, transformer
         transformer_direct_act = True  # add an fc for transformer or not.
         num_latent = 12  # if transformer_direct_act=True, set to number of actions.
         history_lengths = [1, 66]

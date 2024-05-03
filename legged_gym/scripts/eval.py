@@ -78,8 +78,8 @@ def play(args):
     env_cfg.terrain.curriculum = False
 
     # if terrain_idx == None:
-    env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.1, 0.1, 0.2]
-    # env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
+    # env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.1, 0.1, 0.2]
+    env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
     # else:
     #     env_cfg.terrain.terrain_proportions = [0, 0, 0, 0, 0, 0]
     #     env_cfg.terrain.terrain_proportions[terrain_idx] = 1
@@ -277,7 +277,7 @@ if __name__ == "__main__":
 
     if EVAL:
         tracking_errors, labels, envs_per_label = play(args)
-        print(tracking_errors)
+        # print(tracking_errors)
         print(labels)
         all_round_errors = {}
         avr_tracking_errors = torch.zeros(len(labels))
