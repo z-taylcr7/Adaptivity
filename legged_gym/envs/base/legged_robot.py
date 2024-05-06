@@ -226,8 +226,8 @@ class LeggedRobot(BaseTask):
 
         self.obs_buf = torch.cat(
             (
-                # self.base_lin_vel * self.obs_scales.lin_vel,
-                self.contact_filt.float() * 2 - 1.0,
+                self.base_lin_vel * self.obs_scales.lin_vel,
+                # self.contact_filt.float() * 2 - 1.0,
                 self.base_ang_vel * self.obs_scales.ang_vel,
                 self.projected_gravity,
                 self.commands[:, :3] * self.commands_scale,
@@ -1419,8 +1419,8 @@ class LeggedRobot(BaseTask):
             dim=1,
         )
 
-    def _reward_fly(self):
-        fly = torch.sum(self.contact_filt.float(), dim=-1) < 0.5
-        return (
-            fly * 1.0 * (self.episode_length_buf * self.dt > 0.5)
-        )  # ignore falling down when respawned
+    # def _reward_fly(self):
+    #     fly = torch.sum(self.contact_filt.float(), dim=-1) < 0.5
+    #     return (
+    #         fly * 1.0 * (self.episode_length_buf * self.dt > 0.5)
+    #     )  # ignore falling down when respawned

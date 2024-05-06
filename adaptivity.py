@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from argparse import ArgumentParser
 import torch
+import os
 
 # labels = [
 # ver 1.0
@@ -70,25 +71,39 @@ def radar(values, labels, name):
     angles += angles[:1]
 
     # 绘图
-    ax.fill(angles, values, alpha=0.2)
+    ax.fill(angles, values, alpha=0.1)
 
-    ax.plot(angles, values, linewidth=1, linestyle="solid", label=name.split("/")[2])
+    ax.plot(
+        angles,
+        values,
+        linewidth=2,
+        linestyle="solid",
+        label=name.split("/")[3] + "_" + name.split("/")[4],
+    )
 
     # ax.set_yticklabels([])
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(labels)
-    r_ticks = np.linspace(0, 1.0, 11)  # 根据你的数据范围调整
+    r_ticks = np.linspace(0, 0.5, 11)  # 根据你的数据范围调整
     ax.set_rgrids(r_ticks)
 
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("path", type=str, nargs="+")
+    parser.add_argument("--path", type=str, nargs="+")
+    parser.add_argument("--dir", type=str)
     args = parser.parse_args()
     fig, ax = plt.subplots(figsize=(15, 15), subplot_kw=dict(polar=True))
 
-    for path in args.path:
-        plot_adaptivity(path)
+    if args.dir is not None:
+        for path, dirname, pt in os.walk(args.dir):
+            for file in pt:
+                if file.endswith(".pt"):
+                    print(file)
+                    plot_adaptivity(os.path.join(path, file))
+    if args.path is not None:
+        for path in args.path:
+            plot_adaptivity(path)
     plt.legend(loc="upper center", bbox_to_anchor=(0.5, 0.10))
     plt.show()
     plt.title("Tracking errors of different adaptivity strategies")

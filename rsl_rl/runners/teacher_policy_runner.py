@@ -49,7 +49,7 @@ class TeacherPolicyRunner:
         train_cfg,
         log_dir=None,
         device="cpu",
-        history_lengths=[4, 66],
+        history_lengths=[1, 66],
     ):
 
         self.cfg = train_cfg["runner"]

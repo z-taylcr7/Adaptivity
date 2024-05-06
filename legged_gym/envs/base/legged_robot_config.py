@@ -34,7 +34,7 @@ from .base_config import BaseConfig
 class LeggedRobotCfg(BaseConfig):
     class env:
         num_envs = 4096
-        num_observations = 49
+        num_observations = 48
         num_privileged_obs = None  # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise
         num_actions = 12
         env_spacing = 3.0  # not used with heightfields/trimeshes
@@ -158,7 +158,7 @@ class LeggedRobotCfg(BaseConfig):
 
     class rewards:
         class scales:
-            termination = -1.0  # -10.0
+            termination = -0.0  # -10.0
             tracking_lin_vel = 1.0
             tracking_ang_vel = 0.5
             lin_vel_z = -2.0  #
@@ -235,7 +235,7 @@ class LeggedRobotCfg(BaseConfig):
             )
 
     class eval:
-        eval_mode = False
+        eval_mode = -1
         # envs_per_scale = 4
         envs_per_scale = 40  # can be modified as you want
 
@@ -282,9 +282,9 @@ class LeggedRobotCfgPPO(BaseConfig):
         # rnn_hidden_size = 512
         # rnn_num_layers = 1
         net_type = "cnn"  # can be mlp, lstm, gru, cnn, transformer
-        transformer_direct_act = True  # add an fc for transformer or not.
-        num_latent = 12  # if transformer_direct_act=True, set to number of actions.
-        history_lengths = [1, 66]
+        transformer_direct_act = True  # add an fc for transformer or not. Activated if net_type="transformer"
+        num_latent = 12  # if net_type="transformer" and transformer_direct_act=True, set to number of actions.
+        history_lengths = [0, 66]
 
     class algorithm:
         # training params
@@ -305,10 +305,10 @@ class LeggedRobotCfgPPO(BaseConfig):
         policy_class_name = "TeacherActorCritic"
         algorithm_class_name = "PPO"
         num_steps_per_env = 24  # per iteration
-        max_iterations = 20000  # number of policy updates
+        max_iterations = 30000  # number of policy updates
 
         # logging
-        save_interval = 2000  # check for potential saves every this many iterations
+        save_interval = 3000  # check for potential saves every this many iterations
         experiment_name = "test"
         run_name = ""
         # load and resume

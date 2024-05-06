@@ -201,15 +201,18 @@ class DualPolicyRunner:
                         else:
                             latent = self.encoder(self.trajectory_history)
 
-                    concat_obs = torch.concat(
-                        (
-                            self.trajectory_history[
-                                :, -self.short_history_length :, :obs_dim
-                            ].flatten(1),
-                            latent,
-                        ),
-                        dim=-1,
-                    )
+                    if self.short_history_length > 0:
+                        concat_obs = torch.concat(
+                            (
+                                self.trajectory_history[
+                                    :, -self.short_history_length :, :obs_dim
+                                ].flatten(1),
+                                latent,
+                            ),
+                            dim=-1,
+                        )
+                    else:
+                        concat_obs = latent
 
                     concat_critic_obs = concat_obs
                     actions = self.alg.act(concat_obs, concat_critic_obs)

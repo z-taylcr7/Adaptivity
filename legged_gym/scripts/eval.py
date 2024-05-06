@@ -78,8 +78,8 @@ def play(args):
     env_cfg.terrain.curriculum = False
 
     # if terrain_idx == None:
-    # env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.1, 0.1, 0.2]
-    env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
+    env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.1, 0.1, 0.2]
+    # env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
     # else:
     #     env_cfg.terrain.terrain_proportions = [0, 0, 0, 0, 0, 0]
     #     env_cfg.terrain.terrain_proportions[terrain_idx] = 1
@@ -272,6 +272,7 @@ if __name__ == "__main__":
     RECORD_FRAMES = False
     MOVE_CAMERA = False
     args = get_args()
+    args.eval_mode = "1"
     EVAL = args.eval_mode != "-1"
     print(args.load_run)
 
