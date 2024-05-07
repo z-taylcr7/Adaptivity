@@ -109,7 +109,7 @@ class StudentPolicyRunner:
         self.student_encoder = DualHistEncoder(
             short_history_length=self.short_history_length,
             long_history_length=self.long_history_length,
-            net_type="cnn",
+            net_type="transformer",
             device=self.device,
         ).to(self.device)
 
@@ -205,6 +205,7 @@ class StudentPolicyRunner:
                 #     ),
                 #     dim=-1,
                 # )
+                
                 actions = self.alg.act(concat_obs, self.trajectory_history.flatten(1))
                 obs, privileged_obs, rewards, dones, infos = self.env.step(actions)
                 critic_obs = privileged_obs if privileged_obs is not None else obs

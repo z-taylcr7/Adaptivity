@@ -159,6 +159,19 @@ class DualHistEncoder(nn.Module):
             self.direct_act = transformer_direct_act
             if not self.direct_act:
                 self.transformer_fc = nn.Linear(self.action_dim, y_dim)
+        elif self.type == "discreteTransformer":
+            self.discrete_array = [0, 1, 4, 8, 16, 32, 64]
+            self.transformer = DecisionTransformer(
+                state_dim=self.obs_dim - self.action_dim,
+                act_dim=self.action_dim,
+                n_blocks=1,
+                h_dim=y_dim,
+                context_len=len(self.discrete_array),
+                n_heads=4,
+                drop_p=0.05,
+                max_timestep=4096,
+                # max_timestep=256,
+            )
         else:
             raise ValueError("Invalid net_type")
 
@@ -255,6 +268,43 @@ class DualHistEncoder(nn.Module):
             y = self.transformer(timesteps, states, actions)
             if not self.direct_act:
                 y = self.transformer_fc(y)
+        elif self.net_type == "discreteTransformer":
+            discrete_history = torch.zeros(
+                history.shape[0], len(self.discrete_array), self.obs_dim
+            )
+            discrete_timesteps = torch.zeros(history.shape[0], len(self.discrete_array))
+            for i in range(len(self.discrete_array)):
+                discrete_history[:, i, :] = history[:, self.discrete_array[i], :]
+                discrete_timesteps[:, i] = timesteps[:, self.discrete_array[i]]
+
+            states = discrete_history[:, :, : self.obs_dim - self.action_dim]
+            actions = discrete_history[
+                :, :, self.obs_dim - self.action_dim : self.obs_dim
+            ]
+            timesteps = discrete_timesteps
+            # timesteps = timesteps.gather(
+            #     1,
+            #     torch.tensor(self.discrete_array)
+            #     .unsqueeze(0)
+            #     .repeat(timesteps.shape[0], 1),
+            # )
+            states = torch.as_tensor(
+                states,
+                device=self.device,  # type: ignore
+                dtype=torch.float32,
+            )
+            actions = torch.as_tensor(
+                actions,
+                device=self.device,  # type: ignore
+                dtype=torch.float32,
+            )
+
+            timesteps = torch.as_tensor(
+                cur_timestep,
+                device=self.device,  # type: ignore
+                dtype=torch.long,
+            )
+            y = self.transformer(timesteps, states, actions)
 
         # return torch.randn_like(y) * 0.1 * y + y
 
