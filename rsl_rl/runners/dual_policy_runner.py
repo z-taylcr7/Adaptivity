@@ -194,7 +194,7 @@ class DualPolicyRunner:
             with torch.no_grad():
                 for i in range(self.num_steps_per_env):
                     if self.long_history_length > 0:
-                        if self.encoder.net_type == "transformer":
+                        if "transformer" in self.encoder.net_type:
                             latent = self.encoder(
                                 self.trajectory_history, self.cur_timesteps
                             )

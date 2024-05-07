@@ -159,8 +159,12 @@ class DualHistEncoder(nn.Module):
             self.direct_act = transformer_direct_act
             if not self.direct_act:
                 self.transformer_fc = nn.Linear(self.action_dim, y_dim)
-        elif self.type == "discreteTransformer":
+        elif self.net_type == "discrete_transformer":
             self.discrete_array = [0, 1, 4, 8, 16, 32, 64]
+            self.discrete_array = torch.as_tensor(
+                self.discrete_array, dtype=torch.long, device=device
+            )
+
             self.transformer = DecisionTransformer(
                 state_dim=self.obs_dim - self.action_dim,
                 act_dim=self.action_dim,
@@ -173,7 +177,7 @@ class DualHistEncoder(nn.Module):
                 # max_timestep=256,
             )
         else:
-            raise ValueError("Invalid net_type")
+            raise ValueError("Invalid net_type:", net_type)
 
         self.optim = Adam(self.parameters(), lr=lr)
         print("DualHistEncoder initialized, obs_dim=", obs_dim)
@@ -268,26 +272,33 @@ class DualHistEncoder(nn.Module):
             y = self.transformer(timesteps, states, actions)
             if not self.direct_act:
                 y = self.transformer_fc(y)
-        elif self.net_type == "discreteTransformer":
-            discrete_history = torch.zeros(
-                history.shape[0], len(self.discrete_array), self.obs_dim
+        elif self.net_type == "discrete_transformer":
+            # discrete_history = torch.zeros(
+            #     history.shape[0], len(self.discrete_array), self.obs_dim
+            # )
+            # discrete_timesteps = torch.zeros(history.shape[0], len(self.discrete_array))
+            # for i in range(len(self.discrete_array)):
+            #     discrete_history[:, i, :] = history[:, self.discrete_array[i], :]
+            #     discrete_timesteps[:, i] = timesteps[:, self.discrete_array[i]]
+            timesteps = cur_timestep
+            timesteps = timesteps.gather(
+                1,
+                torch.tensor(self.discrete_array)
+                .unsqueeze(0)
+                .repeat(timesteps.shape[0], 1),
             )
-            discrete_timesteps = torch.zeros(history.shape[0], len(self.discrete_array))
-            for i in range(len(self.discrete_array)):
-                discrete_history[:, i, :] = history[:, self.discrete_array[i], :]
-                discrete_timesteps[:, i] = timesteps[:, self.discrete_array[i]]
-
+            discrete_history = history.gather(
+                1,
+                torch.tensor(self.discrete_array)
+                .unsqueeze(0)
+                .unsqueeze(2)
+                .repeat(history.shape[0], 1, history.shape[2]),
+            )
             states = discrete_history[:, :, : self.obs_dim - self.action_dim]
             actions = discrete_history[
                 :, :, self.obs_dim - self.action_dim : self.obs_dim
             ]
-            timesteps = discrete_timesteps
-            # timesteps = timesteps.gather(
-            #     1,
-            #     torch.tensor(self.discrete_array)
-            #     .unsqueeze(0)
-            #     .repeat(timesteps.shape[0], 1),
-            # )
+
             states = torch.as_tensor(
                 states,
                 device=self.device,  # type: ignore
@@ -300,7 +311,7 @@ class DualHistEncoder(nn.Module):
             )
 
             timesteps = torch.as_tensor(
-                cur_timestep,
+                timesteps,
                 device=self.device,  # type: ignore
                 dtype=torch.long,
             )
