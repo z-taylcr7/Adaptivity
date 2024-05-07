@@ -39,11 +39,19 @@ import torch
 
 
 def train(args):
-    env, env_cfg = task_registry.make_env(name=args.task, args=args)
+    env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
+    env_cfg.terrain.measure_heights = True
+    env_cfg.env.privileged_obs = True
+    env_cfg.env.num_observations = 251
+    train_cfg.runner.run_name = "rma_teacher"
+
+    env, env_cfg = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
+    print(env_cfg.env.num_observations)
     ppo_runner, train_cfg = task_registry.make_teacher_runner(
-        env=env, name=args.task, args=args
+        env=env, name=args.task, args=args, train_cfg=train_cfg
     )
-    train_cfg.policy.net_type = "rma"
+    # train_cfg.policy.net_type = "rma"
+
     ppo_runner.learn(
         num_learning_iterations=train_cfg.runner.max_iterations,
         init_at_random_ep_len=True,

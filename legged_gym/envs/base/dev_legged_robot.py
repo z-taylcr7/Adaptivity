@@ -1,4 +1,3 @@
-
 # SPDX-FileCopyrightText: Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -260,7 +259,9 @@ class LeggedRobot(BaseTask):
             if self.cfg.terrain.measure_heights:
                 heights = (
                     torch.clip(
-                        self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights,
+                        self.root_states[:, 2].unsqueeze(1)
+                        - 0.5
+                        - self.measured_heights,
                         -1,
                         1.0,
                     )

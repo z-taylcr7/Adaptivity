@@ -34,8 +34,10 @@ from .base_config import BaseConfig
 class LeggedRobotCfg(BaseConfig):
     class env:
         num_envs = 4096
-        num_observations = 48
+        num_observations = 48  # 48
         num_privileged_obs = None  # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise
+        privileged_dim = 203
+        privileged_obs = False
         num_actions = 12
         env_spacing = 3.0  # not used with heightfields/trimeshes
         send_timeouts = True  # send time out information to the algorithm
@@ -151,10 +153,13 @@ class LeggedRobotCfg(BaseConfig):
         randomize_friction = True
         friction_range = [0.5, 1.25]
         randomize_base_mass = True
-        added_mass_range = [0.0, 1.0]
+        added_mass_range = [0.0, 2.0]
         push_robots = True
         push_interval_s = 15
         max_push_vel_xy = 1.0
+        randomize_kp_kd = True
+        kp_range = [23.0, 33.0]
+        kd_range = [0.60, 0.80]
 
     class rewards:
         class scales:
@@ -281,10 +286,10 @@ class LeggedRobotCfgPPO(BaseConfig):
         # rnn_type = 'lstm'
         # rnn_hidden_size = 512
         # rnn_num_layers = 1
-        net_type = "cnn"  # can be mlp, lstm, gru, cnn, transformer
+        net_type = "transformer"  # can be mlp, lstm, gru, cnn, transformer
         transformer_direct_act = True  # add an fc for transformer or not. Activated if net_type="transformer"
         num_latent = 12  # if net_type="transformer" and transformer_direct_act=True, set to number of actions.
-        history_lengths = [0, 66]
+        history_lengths = [1, 66]
 
     class algorithm:
         # training params
@@ -305,10 +310,10 @@ class LeggedRobotCfgPPO(BaseConfig):
         policy_class_name = "TeacherActorCritic"
         algorithm_class_name = "PPO"
         num_steps_per_env = 24  # per iteration
-        max_iterations = 30000  # number of policy updates
+        max_iterations = 20000  # number of policy updates
 
         # logging
-        save_interval = 3000  # check for potential saves every this many iterations
+        save_interval = 2000  # check for potential saves every this many iterations
         experiment_name = "test"
         run_name = ""
         # load and resume

@@ -238,16 +238,40 @@ class LeggedRobot(BaseTask):
             dim=-1,
         )
         # add perceptive inputs if not blind
-        if self.cfg.terrain.measure_heights:
-            heights = (
-                torch.clip(
-                    self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights,
-                    -1,
-                    1.0,
+        if self.cfg.env.privileged_obs:
+            if self.cfg.terrain.measure_heights:
+                heights = (
+                    torch.clip(
+                        self.root_states[:, 2].unsqueeze(1)
+                        - 0.5
+                        - self.measured_heights,
+                        -1,
+                        1.0,
+                    )
+                    * self.obs_scales.height_measurements
                 )
-                * self.obs_scales.height_measurements
-            )
-            self.obs_buf = torch.cat((self.obs_buf, heights), dim=-1)
+                self.obs_buf = torch.cat((self.obs_buf, heights), dim=-1)
+            contact_force = self.contact_forces[:, self.feet_indices].flatten(1) * 0.002
+            self.obs_buf = torch.cat((self.obs_buf, contact_force), dim=-1)
+
+            if self.cfg.domain_rand.randomize_friction:
+                self.obs_buf = torch.cat((self.obs_buf, self.env_frictions), dim=-1)
+
+            if self.cfg.domain_rand.randomize_base_mass:
+                self.obs_buf = torch.cat(
+                    (self.obs_buf, self.env_added_masses * 0.5), dim=-1
+                )
+
+            if self.cfg.domain_rand.randomize_kp_kd:
+                self.obs_buf = torch.cat(
+                    (
+                        self.obs_buf,
+                        (self.env_kps - 28) * 0.2,
+                        (self.env_kds - 0.7) * 10,
+                    ),
+                    dim=-1,
+                )
+
         # add noise if needed
         if self.add_noise:
             self.obs_buf += (
@@ -335,7 +359,7 @@ class LeggedRobot(BaseTask):
             # elif env_id / (self.cfg.eval.envs_per_scale) == 8:
             #     for s in range(len(props)):
             #         props[s].friction = self.friction_coeffs[env_id] = 2.0
-
+        self.env_frictions[env_id] = props[0].friction
         return props
 
     def _process_dof_props(self, props, env_id):
@@ -398,15 +422,19 @@ class LeggedRobot(BaseTask):
             mass_idx = (env_id - base_idx) // (self.cfg.eval.envs_per_scale)
 
             if mass_idx >= 0 and mass_idx < len(self.cfg.eval.add_mass_scales):
-                props[0].mass += np.random.uniform(
+                added_mass = np.random.uniform(
                     self.cfg.eval.add_mass_scales[mass_idx] - 0.1,
                     self.cfg.eval.add_mass_scales[mass_idx] + 0.1,
                 )
+                props[0].mass += added_mass
+                self.env_added_masses[env_id] = added_mass
                 return props
 
         if self.cfg.domain_rand.randomize_base_mass:
             rng = self.cfg.domain_rand.added_mass_range
-            props[0].mass += np.random.uniform(rng[0], rng[1])
+            added_mass = np.random.uniform(rng[0], rng[1])
+            props[0].mass += added_mass
+        self.env_added_masses[env_id] = added_mass
         return props
 
     def _post_physics_step_callback(self):
@@ -752,6 +780,7 @@ class LeggedRobot(BaseTask):
                 * noise_level
                 * self.obs_scales.height_measurements
             )
+
         return noise_vec
 
     # ----------------------------------------
@@ -794,10 +823,18 @@ class LeggedRobot(BaseTask):
             requires_grad=False,
         )
         self.p_gains = torch.zeros(
-            self.num_actions, dtype=torch.float, device=self.device, requires_grad=False
+            self.num_envs,
+            self.num_actions,
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
         )
         self.d_gains = torch.zeros(
-            self.num_actions, dtype=torch.float, device=self.device, requires_grad=False
+            self.num_envs,
+            self.num_actions,
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
         )
         self.actions = torch.zeros(
             self.num_envs,
@@ -857,6 +894,8 @@ class LeggedRobot(BaseTask):
             self.num_dof, dtype=torch.float, device=self.device, requires_grad=False
         )
 
+        print("init okay!!!")
+
         # contacts
 
         self.last_contacts = torch.zeros(
@@ -891,6 +930,18 @@ class LeggedRobot(BaseTask):
                     print(
                         f"PD gain of joint {name} were not defined, setting them to zero"
                     )
+        if self.cfg.domain_rand.randomize_kp_kd:
+            kp_rng = self.cfg.domain_rand.kp_range
+            kd_rng = self.cfg.domain_rand.kd_range
+            for env_id in range(self.num_envs):
+                kp = np.random.uniform(kp_rng[0], kp_rng[1])
+                kd = np.random.uniform(kd_rng[0], kd_rng[1])
+                # kp = kp_rng[0] + (kp_rng[1] - kp_rng[0]) / 66 * (env_id % 66)
+                # kd = kd_rng[0] + (kd_rng[1] - kd_rng[0]) / 67 * (env_id % 67)
+                self.p_gains[env_id, :] = kp
+                self.d_gains[env_id, :] = kd
+                self.env_kps[env_id] = kp
+                self.env_kds[env_id] = kd
         self.default_dof_pos = self.default_dof_pos.unsqueeze(0)
 
     def _prepare_reward_function(self):
@@ -1055,6 +1106,19 @@ class LeggedRobot(BaseTask):
         env_upper = gymapi.Vec3(0.0, 0.0, 0.0)
         self.actor_handles = []
         self.envs = []
+
+        self.env_frictions = torch.zeros(
+            self.num_envs, 1, device=self.device, requires_grad=False
+        )
+        self.env_added_masses = torch.zeros(
+            self.num_envs, 1, device=self.device, requires_grad=False
+        )
+        self.env_kps = torch.zeros(
+            self.num_envs, 1, device=self.device, requires_grad=False
+        )
+        self.env_kds = torch.zeros(
+            self.num_envs, 1, device=self.device, requires_grad=False
+        )
         for i in range(self.num_envs):
             # create env instance
             env_handle = self.gym.create_env(
@@ -1116,6 +1180,7 @@ class LeggedRobot(BaseTask):
             device=self.device,
             requires_grad=False,
         )
+
         for i in range(len(termination_contact_names)):
             self.termination_contact_indices[i] = self.gym.find_actor_rigid_body_handle(
                 self.envs[0], self.actor_handles[0], termination_contact_names[i]

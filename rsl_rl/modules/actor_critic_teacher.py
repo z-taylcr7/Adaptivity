@@ -44,12 +44,14 @@ class TeacherActorCritic(nn.Module):
         num_actor_obs,
         num_critic_obs,
         num_actions,
+        history_lengths,
+        net_type,
         actor_hidden_dims=[256, 256, 256],
         critic_hidden_dims=[256, 256, 256],
         activation="elu",
         init_noise_std=1.0,
-        latent_dim=64,
-        privileged_dim=203,
+        latent_dim=12,
+        privileged_dim=187 + 16,
         **kwargs,
     ):
         if kwargs:
@@ -61,8 +63,18 @@ class TeacherActorCritic(nn.Module):
 
         activation = get_activation(activation)
 
-        mlp_input_dim_a = (num_actor_obs) * 4 + latent_dim # num_actor_obs=48
-        mlp_input_dim_c = (num_actor_obs) * 4 + latent_dim
+        self.short_history_length = history_lengths[0]
+        self.long_history_length = history_lengths[1]
+
+        self.privileged_obs = num_actor_obs
+        self.num_actor_obs = num_actor_obs - privileged_dim
+
+        mlp_input_dim_a = (
+            self.num_actor_obs
+        ) * self.short_history_length + latent_dim  # num_actor_obs=48
+        mlp_input_dim_c = (
+            self.num_actor_obs
+        ) * self.short_history_length + latent_dim  # num_actor_obs=48
 
         # Policy
         actor_layers = []
@@ -140,9 +152,12 @@ class TeacherActorCritic(nn.Module):
         self.distribution = Normal(mean, mean * 0.0 + self.std)
 
     def act(self, observations, **kwargs):
-        short = observations[:, -4 * 48 :]
-        latent_vec = self.encoder(observations[:, 48 : 48 + self.privileged_dim])
-        concat_obs = torch.cat((short, latent_vec), dim=-1)
+        # obs = 48 + 187 + 16
+        pr = observations[:, self.num_actor_obs :]
+        latent_vec = self.encoder(pr)
+        concat_obs = torch.cat(
+            (observations[:, : self.num_actor_obs], latent_vec), dim=-1
+        )
         self.update_distribution(concat_obs)
         return self.distribution.sample()
 
@@ -150,20 +165,28 @@ class TeacherActorCritic(nn.Module):
         return self.distribution.log_prob(actions).sum(dim=-1)
 
     def get_latent_vector(self, observations):
-        latent_vector = self.encoder(observations[:, 48 : 48 + self.privileged_dim])
+        latent_vector = self.encoder(
+            observations[
+                :, self.num_actor_obs : self.num_actor_obs + self.privileged_dim
+            ]
+        )
         return latent_vector
 
     def act_inference(self, observations):
-        short = observations[:, -4 * 48 :]
-        latent_vec = self.encoder(observations)
-        concat_obs = torch.cat((short, latent_vec), dim=-1)
+        pr = observations[:, self.num_actor_obs :]
+        latent_vec = self.encoder(pr)
+        concat_obs = torch.cat(
+            (observations[:, : self.num_actor_obs], latent_vec), dim=-1
+        )
         actions_mean = self.actor(concat_obs)
         return actions_mean
 
     def evaluate(self, critic_observations, **kwargs):
-        short = critic_observations[:, -4 * 48 :]
-        latent_vec = self.encoder(critic_observations[:, 48 : 48 + self.privileged_dim])
-        concat_obs = torch.cat((short, latent_vec), dim=-1)
+        pr = critic_observations[:, self.num_actor_obs :]
+        latent_vec = self.encoder(pr)
+        concat_obs = torch.cat(
+            (critic_observations[:, : self.num_actor_obs], latent_vec), dim=-1
+        )
         value = self.critic(concat_obs)
         return value
 

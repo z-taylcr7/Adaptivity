@@ -63,7 +63,10 @@ class TeacherPolicyRunner:
             num_critic_obs = self.env.num_obs
         actor_critic_class = eval(self.cfg["policy_class_name"])  # ActorCritic
         actor_critic: TeacherActorCritic = actor_critic_class(
-            self.env.num_obs, num_critic_obs, self.env.num_actions, **self.policy_cfg
+            self.env.num_obs,
+            num_critic_obs,
+            self.env.num_actions,
+            **self.policy_cfg,
         ).to(self.device)
         alg_class = eval(self.cfg["algorithm_class_name"])  # PPO
         self.alg: PPO = alg_class(actor_critic, device=self.device, **self.alg_cfg)
@@ -74,7 +77,7 @@ class TeacherPolicyRunner:
         self.alg.init_storage(
             self.env.num_envs,
             self.num_steps_per_env,
-            [self.env.num_obs + 4 * 48],
+            [self.env.num_obs],
             [self.env.num_obs],
             [self.env.num_actions],
         )
@@ -130,20 +133,20 @@ class TeacherPolicyRunner:
             with torch.inference_mode():
                 for i in range(self.num_steps_per_env):
 
-                    concat_obs = torch.cat(
-                        (
-                            obs,
-                            self.trajectory_history[
-                                :, -self.short_history_length :
-                            ].flatten(1),
-                        ),
-                        dim=1,
-                    )
+                    # concat_obs = torch.cat(
+                    #     (
+                    #         obs,
+                    #         self.trajectory_history[
+                    #             :, -self.short_history_length :
+                    #         ].flatten(1),
+                    #     ),
+                    #     dim=1,
+                    # )
+                    concat_obs = obs
 
                     critic_obs = (
                         privileged_obs if privileged_obs is not None else concat_obs
                     )
-                    print(concat_obs.shape, critic_obs.shape)
                     actions = self.alg.act(concat_obs, critic_obs)
                     obs, privileged_obs, rewards, dones, infos = self.env.step(actions)
 
