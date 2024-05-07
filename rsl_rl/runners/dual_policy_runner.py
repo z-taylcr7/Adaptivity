@@ -105,13 +105,13 @@ class DualPolicyRunner:
             [
                 # max(self.short_history_length, self.long_history_length),
                 # self.env.num_obs,
-                self.policy_cfg["num_latent"]
+                self.policy_cfg["num_latent"] * (self.long_history_length > 0)
                 + self.env.num_obs * self.short_history_length,
             ],
             [
                 # max(self.short_history_length, self.long_history_length)
                 # self.env.num_obs,
-                self.policy_cfg["num_latent"]
+                self.policy_cfg["num_latent"] * (self.long_history_length > 0)
                 + self.env.num_obs * self.short_history_length,
             ],
             [self.env.num_actions],
@@ -202,15 +202,20 @@ class DualPolicyRunner:
                             latent = self.encoder(self.trajectory_history)
 
                     if self.short_history_length > 0:
-                        concat_obs = torch.concat(
-                            (
-                                self.trajectory_history[
-                                    :, -self.short_history_length :, :obs_dim
-                                ].flatten(1),
-                                latent,
-                            ),
-                            dim=-1,
-                        )
+                        if self.long_history_length <= 0:
+                            concat_obs = self.trajectory_history[
+                                :, -self.short_history_length :, :obs_dim
+                            ].flatten(1)
+                        else:
+                            concat_obs = torch.concat(
+                                (
+                                    self.trajectory_history[
+                                        :, -self.short_history_length :, :obs_dim
+                                    ].flatten(1),
+                                    latent,
+                                ),
+                                dim=-1,
+                            )
                     else:
                         concat_obs = latent
 

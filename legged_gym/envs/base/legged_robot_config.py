@@ -286,7 +286,7 @@ class LeggedRobotCfgPPO(BaseConfig):
         # rnn_type = 'lstm'
         # rnn_hidden_size = 512
         # rnn_num_layers = 1
-        net_type = "discrete_transformer"  # can be mlp, lstm, gru, cnn, transformer
+        net_type = "transformer"  # can be mlp, lstm, gru, cnn, transformer
         transformer_direct_act = True  # add an fc for transformer or not. Activated if net_type="transformer"
         num_latent = 12  # if net_type="transformer" and transformer_direct_act=True, set to number of actions.
         history_lengths = [1, 66]

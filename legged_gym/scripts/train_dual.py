@@ -41,8 +41,6 @@ import torch
 def train(args):
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
     train_cfg.runner.run_name = "dual"
-    train_cfg.policy.add_action = args.add_action
-    print(args.add_action)
     train_cfg.runner.policy_class_name = "DualActorCritic"
     train_cfg.runner_class_name = "DualPolicyRunner"
 
