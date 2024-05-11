@@ -30,6 +30,7 @@
 
 from legged_gym import LEGGED_GYM_ROOT_DIR
 import os
+import time
 
 import isaacgym
 from legged_gym.envs import *
@@ -76,24 +77,27 @@ def play(args):
     env_cfg.terrain.num_rows = 12
     env_cfg.terrain.num_cols = 12
     env_cfg.terrain.curriculum = False
-
+    if args.eval_mode == "-1":
+        env_cfg.env.num_envs = 1
+        env_cfg.commands.ranges.lin_vel_x = [0.2, 0.2]
+        env_cfg.commands.ranges.lin_vel_y = [0.0, 0.0]
+        env_cfg.commands.ranges.ang_vel = [0.0, 0.0]
+        env_cfg.commands.ranges.heading = [0.0, 0.0]
     # if terrain_idx == None:
-    env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.1, 0.1, 0.2]
-    # env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
+    # env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.1, 0.1, 0.2]
+    env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
     # else:
     #     env_cfg.terrain.terrain_proportions = [0, 0, 0, 0, 0, 0]
     #     env_cfg.terrain.terrain_proportions[terrain_idx] = 1
-
-    # prepare environment
-    env, _ = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
-    obs = env.get_observations()
-    # load policy
-    # load_run = args.load_run
     train_cfg.runner.resume = True
     train_cfg.runner.load_run = args.load_run
     train_cfg.runner.policy_class_name = "DualActorCritic"
     train_cfg.runner_class_name = "DualPolicyRunner"
     train_cfg.policy.net_type = train_cfg.runner.load_run.split("/")[0].split("_")[-1]
+    if train_cfg.policy.net_type == "teacher":
+        env_cfg.terrain.measure_heights = True
+        env_cfg.env.privileged_obs = True
+        env_cfg.env.num_observations = 251
     train_cfg.policy.history_lengths = [
         1,
         int(train_cfg.runner.load_run.split("/")[1].split("_")[1].split("=")[1]),
@@ -103,9 +107,19 @@ def play(args):
     )
     print("net type:", train_cfg.policy.net_type)
 
-    ppo_runner, train_cfg = task_registry.make_dual_runner(
-        env=env, name=args.task, args=args, train_cfg=train_cfg
-    )
+    # prepare environment
+    env, _ = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
+    obs = env.get_observations()
+    # load policy
+    # load_run = args.load_run
+    if train_cfg.policy.net_type == "teacher":
+        ppo_runner, train_cfg = task_registry.make_teacher_runner(
+            env=env, name=args.task, args=args, train_cfg=train_cfg
+        )
+    else:
+        ppo_runner, train_cfg = task_registry.make_dual_runner(
+            env=env, name=args.task, args=args, train_cfg=train_cfg
+        )
 
     checkpoint = -1
     log_root = os.path.join(
@@ -139,7 +153,7 @@ def play(args):
     stop_rew_log = (
         env.max_episode_length + 1
     )  # number of steps before print average episode rewards
-    eval_laps = 2
+    eval_laps = 4
     camera_position = np.array(env_cfg.viewer.pos, dtype=np.float64)
     camera_vel = np.array([1.0, 1.0, 0.0])
     camera_direction = np.array(env_cfg.viewer.lookat) - np.array(env_cfg.viewer.pos)
@@ -164,19 +178,28 @@ def play(args):
         (env_cfg.env.num_envs, history_length), dtype=torch.int32, device=encoder.device
     )
     for i in range(eval_laps * int(env.max_episode_length)):
+        start = time.time()
         if history_length > 0:
-            if encoder.net_type == "transformer":
-                latent = encoder(trajectory_history, cur_timesteps)
+            if train_cfg.policy.net_type == "teacher":
+                concat_obs = obs
             else:
-                latent = encoder(trajectory_history)
+                if "transformer" in encoder.net_type:
+                    latent = encoder(trajectory_history, cur_timesteps)
+                else:
+                    latent = encoder(trajectory_history)
 
-            concat_obs = torch.concat(
-                (
-                    trajectory_history[:, -1:, :obs_dim].flatten(1),
-                    latent,
-                ),
-                dim=-1,
-            )
+                if train_cfg.policy.history_lengths[0] > 0:
+                    concat_obs = torch.concat(
+                        (
+                            trajectory_history[:, -1:, :obs_dim].flatten(1),
+                            latent,
+                        ),
+                        dim=-1,
+                    )
+                else:
+                    concat_obs = latent
+        else:
+            concat_obs = trajectory_history[:, -1:, :obs_dim].flatten(1)
 
         concat_obs = concat_obs.to(env.device)
         # print("concat obs device:", concat_obs.device)
@@ -184,21 +207,24 @@ def play(args):
         obs, _, rews, dones, infos = env.step(actions.detach())
         env_ids = dones.nonzero(as_tuple=False).flatten()
         trajectory_history[env_ids] = 0
-        cur_timesteps[env_ids] = 0
-        cur_timesteps = torch.concat(
-            (
-                cur_timesteps[:, 1:],
-                (cur_timesteps[:, -1] + 1).unsqueeze(1),
-            ),
-            dim=1,
-        )
-
+        if "transformer" in encoder.net_type:
+            cur_timesteps[env_ids] = 0
+            cur_timesteps = torch.concat(
+                (
+                    cur_timesteps[:, 1:],
+                    (cur_timesteps[:, -1] + 1).unsqueeze(1),
+                ),
+                dim=1,
+            )
         d_obs = obs.detach()
         c_obs = d_obs.to(encoder.device)
         trajectory_history = torch.concat(
             (trajectory_history[:, 1:], c_obs[:, :obs_dim].unsqueeze(1)),
             dim=1,
         )
+        stop = time.time()
+        if i % 100 == 0:
+            print(f"step {i} took {stop - start} seconds")
         if RECORD_FRAMES:
             if i % 2:
                 filename = os.path.join(
@@ -272,7 +298,7 @@ if __name__ == "__main__":
     RECORD_FRAMES = False
     MOVE_CAMERA = False
     args = get_args()
-    args.eval_mode = "1"
+    args.eval_mode = "-1"
     EVAL = args.eval_mode != "-1"
     print(args.load_run)
 

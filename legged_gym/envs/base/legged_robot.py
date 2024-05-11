@@ -226,8 +226,8 @@ class LeggedRobot(BaseTask):
 
         self.obs_buf = torch.cat(
             (
-                self.base_lin_vel * self.obs_scales.lin_vel,
-                # self.contact_filt.float() * 2 - 1.0,
+                # self.base_lin_vel * self.obs_scales.lin_vel,
+                self.contact_filt.float() * 2 - 1.0,
                 self.base_ang_vel * self.obs_scales.ang_vel,
                 self.projected_gravity,
                 self.commands[:, :3] * self.commands_scale,
@@ -920,12 +920,12 @@ class LeggedRobot(BaseTask):
             found = False
             for dof_name in self.cfg.control.stiffness.keys():
                 if dof_name in name:
-                    self.p_gains[i] = self.cfg.control.stiffness[dof_name]
-                    self.d_gains[i] = self.cfg.control.damping[dof_name]
+                    self.p_gains[:, i] = self.cfg.control.stiffness[dof_name]
+                    self.d_gains[:, i] = self.cfg.control.damping[dof_name]
                     found = True
             if not found:
-                self.p_gains[i] = 0.0
-                self.d_gains[i] = 0.0
+                self.p_gains[:, i] = 0.0
+                self.d_gains[:, i] = 0.0
                 if self.cfg.control.control_type in ["P", "V"]:
                     print(
                         f"PD gain of joint {name} were not defined, setting them to zero"
@@ -1484,8 +1484,8 @@ class LeggedRobot(BaseTask):
             dim=1,
         )
 
-    # def _reward_fly(self):
-    #     fly = torch.sum(self.contact_filt.float(), dim=-1) < 0.5
-    #     return (
-    #         fly * 1.0 * (self.episode_length_buf * self.dt > 0.5)
-    #     )  # ignore falling down when respawned
+    def _reward_fly(self):
+        fly = torch.sum(self.contact_filt.float(), dim=-1) < 0.5
+        return (
+            fly * 1.0 * (self.episode_length_buf * self.dt > 0.5)
+        )  # ignore falling down when respawned

@@ -40,6 +40,7 @@ from rsl_rl.runners import DualPolicyRunner
 from rsl_rl.runners import TeacherPolicyRunner
 from rsl_rl.runners import StudentPolicyRunner
 from rsl_rl.runners import TransformerPolicyRunner
+from rsl_rl.runners import StudentPolicyInferenceRunner
 from legged_gym import LEGGED_GYM_ROOT_DIR, LEGGED_GYM_ENVS_DIR
 from .helpers import (
     get_args,
@@ -352,7 +353,13 @@ class TaskRegistry:
         return runner, train_cfg
 
     def make_student_runner(
-        self, env, name=None, args=None, train_cfg=None, log_root="default"
+        self,
+        env,
+        name=None,
+        args=None,
+        train_cfg=None,
+        log_root="default",
+        is_inference=False,
     ) -> Tuple[StudentPolicyRunner, LeggedRobotCfgPPO]:
         """Creates the training algorithm  either from a registered namme or from the provided config file.
 
@@ -411,9 +418,15 @@ class TaskRegistry:
             )
 
         train_cfg_dict = class_to_dict(train_cfg)
-        runner = StudentPolicyRunner(
-            env, train_cfg_dict, log_dir, device=args.rl_device
-        )
+        if is_inference:
+            runner = StudentPolicyInferenceRunner(
+                env, train_cfg_dict, log_dir, device=args.rl_device
+            )
+        else:
+            runner = StudentPolicyRunner(
+                env, train_cfg_dict, log_dir, device=args.rl_device
+            )
+            
         # save resume path before creating a new log_dir
         resume = train_cfg.runner.resume
         if resume:

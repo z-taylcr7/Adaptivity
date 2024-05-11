@@ -47,7 +47,7 @@ from rsl_rl.env import VecEnv
 from dual_hist_encoder import DualHistEncoder
 
 
-class StudentPolicyRunner:
+class StudentPolicyInferenceRunner:
 
     def __init__(
         self,
@@ -78,21 +78,11 @@ class StudentPolicyRunner:
         # ).to(self.device)
         # alg_class = eval(self.cfg["algorithm_class_name"])  # PPO
 
-        teacher_actor_critic = TeacherActorCritic(
-            self.env.num_obs,
-            self.num_critic_obs,
-            self.env.num_actions,
-            **self.policy_cfg,
-        ).to(self.device)
-        alg_class = eval(self.cfg["algorithm_class_name"])  # PPO
-        self.teacher_alg: PPO = alg_class(
-            teacher_actor_critic, device=self.device, **self.alg_cfg
-        )
-
         student_actor_critic = StudentActorCritic(
             self.env.num_obs,
             self.num_critic_obs,
             self.env.num_actions,
+            privileged_dim=0,
             **self.policy_cfg,
         ).to(self.device)
         alg_class = eval(self.cfg["algorithm_class_name"])  # PPO
@@ -182,19 +172,7 @@ class StudentPolicyRunner:
             # Rollout
             # with torch.inference_mode():
             for i in range(self.num_steps_per_env):
-                # teacher_obs = torch.cat(
-                #     (
-                #         obs,
-                #         self.trajectory_history[
-                #             :, -self.short_history_length :
-                #         ].flatten(1),
-                #     ),
-                #     dim=1,
-                # )
-                teacher_obs = obs
-                teacher_latent_vector = self.teacher_alg.actor_critic.get_latent_vector(
-                    teacher_obs
-                ).detach()
+
                 if "transformer" in self.student_encoder.net_type:
                     student_latent_vector = self.student_encoder(
                         self.trajectory_history, self.cur_timesteps
@@ -213,17 +191,7 @@ class StudentPolicyRunner:
                     ),
                     dim=-1,
                 )
-                # concat_critic_obs = torch.concat(
-                #     (
-                #         student_latent_vector,
-                #         self.critic_trajectory_history[
-                #             :, -self.short_history_length :
-                #         ].flatten(1),
-                #     ),
-                #     dim=-1,
-                # )
 
-                # critic_obs = privileged_obs if privileged_obs is not None else obs
                 actions = self.alg.act(concat_obs, concat_obs)
                 obs, privileged_obs, rewards, dones, infos = self.env.step(actions)
                 critic_obs = privileged_obs if privileged_obs is not None else obs
@@ -233,16 +201,6 @@ class StudentPolicyRunner:
                     rewards.to(self.device),
                     dones.to(self.device),
                 )
-
-                # train student encoder
-                mse_loss = (student_latent_vector - teacher_latent_vector).pow(2).mean()
-                # mse_loss.requires_grad = True
-
-                # self.student_encoder.optim.zero_grad()
-                # mse_loss.backward()
-                # self.student_encoder.optim.step()
-
-                # self.alg.process_env_step(rewards, dones, infos)
                 env_ids = dones.nonzero(as_tuple=False).flatten()
 
                 self.trajectory_history[env_ids] = 0
@@ -293,8 +251,6 @@ class StudentPolicyRunner:
             # Learning step
             # start = stop
             # self.alg.compute_returns(concat_critic_obs)
-
-            mean_value_loss, mean_surrogate_loss = mse_loss, mse_loss
             stop = time.time()
             learn_time = stop - start
             if self.log_dir is not None:
@@ -423,9 +379,9 @@ class StudentPolicyRunner:
 
     def load(self, path, load_optimizer=True, load_student_encoder=False):
         loaded_dict = torch.load(path)
-        self.teacher_alg.actor_critic.load_state_dict(
-            loaded_dict["model_state_dict"], strict=False
-        )
+        # self.teacher_alg.actor_critic.load_state_dict(
+        #     loaded_dict["model_state_dict"], strict=False
+        # )
         self.alg.actor_critic.load_state_dict(
             loaded_dict["model_state_dict"], strict=False
         )

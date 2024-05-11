@@ -43,7 +43,7 @@ def train(args):
     env_cfg.terrain.measure_heights = True
     env_cfg.env.privileged_obs = True
     env_cfg.env.num_observations = 251
-    train_cfg.runner.run_name = "rma_teacher"
+    train_cfg.runner.run_name = "teacher"
 
     env, env_cfg = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
     print(env_cfg.env.num_observations)

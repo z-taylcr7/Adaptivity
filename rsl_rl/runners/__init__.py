@@ -32,4 +32,5 @@ from .on_policy_runner import OnPolicyRunner
 from .dual_policy_runner import DualPolicyRunner
 from .teacher_policy_runner import TeacherPolicyRunner
 from .student_policy_runner import StudentPolicyRunner
+from .student_policy_inference_runner import StudentPolicyInferenceRunner
 from .transformer_policy_runner import TransformerPolicyRunner

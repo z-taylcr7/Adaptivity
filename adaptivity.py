@@ -78,7 +78,9 @@ def radar(values, labels, name):
         values,
         linewidth=2,
         linestyle="solid",
-        label=name.split("/")[3] + "_" + name.split("/")[4],
+        label=name.split("/")[3]
+        # + "_" + name.split("/")[4]
+        ,
     )
 
     # ax.set_yticklabels([])
@@ -106,5 +108,5 @@ if __name__ == "__main__":
             plot_adaptivity(path)
     plt.legend(loc="upper center", bbox_to_anchor=(0.5, 0.10))
     plt.show()
-    plt.title("Tracking errors of different adaptivity strategies")
+    plt.title("Tracking errors of different adaptivity strategies on rough only")
     plt.savefig("radar_adaptivity.png")

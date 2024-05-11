@@ -48,6 +48,8 @@ class StudentActorCritic(nn.Module):
         critic_hidden_dims=[256, 256, 256],
         activation="elu",
         init_noise_std=1.0,
+        latent_dim=12,
+        privileged_dim=203,
         **kwargs,
     ):
         if kwargs:
@@ -58,9 +60,12 @@ class StudentActorCritic(nn.Module):
         super(StudentActorCritic, self).__init__()
 
         activation = get_activation(activation)
+        self.num_actor_obs = num_actor_obs - privileged_dim
+        self.latent_dim = latent_dim
+        self.privileged_dim = privileged_dim
 
-        mlp_input_dim_a = 48 * 4 + 64
-        mlp_input_dim_c = 48 * 66
+        mlp_input_dim_a = (self.num_actor_obs) + latent_dim
+        mlp_input_dim_c = (self.num_actor_obs) + latent_dim
 
         # Policy
         actor_layers = []

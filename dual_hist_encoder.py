@@ -14,10 +14,9 @@ class DualHistEncoder(nn.Module):
         obs_dim=48,
         action_dim=12,
         net_type="cnn",
-        transformer_direct_act=False,
+        transformer_direct_act=True,
         device="cpu",
         y_dim=64,
-        z_dim=12,
         lr=1e-4,
     ):
         super().__init__()
@@ -27,7 +26,6 @@ class DualHistEncoder(nn.Module):
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.device = device
-        self.z_dim = z_dim
         self.y_dim = y_dim
 
         # short_obs_dim = obs_dim if add_action / 2 else obs_dim - action_dim
