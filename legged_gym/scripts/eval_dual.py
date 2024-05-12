@@ -71,7 +71,7 @@ def play(args):
         labels.append(f"mas_{mas}")
 
     env_cfg.env.num_envs = min(
-        env_cfg.env.num_envs, env_cfg.eval.envs_per_scale * len(labels)
+        env_cfg.env.num_envs, env_cfg.eval.envs_per_scale * len(labels), 1
     )
     env_cfg.eval.eval_mode = args.eval_mode != "-1"
     env_cfg.terrain.num_rows = 12
@@ -79,13 +79,13 @@ def play(args):
     env_cfg.terrain.curriculum = False
     if args.eval_mode == "-1":
         env_cfg.env.num_envs = 1
-        env_cfg.commands.ranges.lin_vel_x = [0.2, 0.2]
+        env_cfg.commands.ranges.lin_vel_x = [0.5, 0.5]
         env_cfg.commands.ranges.lin_vel_y = [0.0, 0.0]
         env_cfg.commands.ranges.ang_vel = [0.0, 0.0]
         env_cfg.commands.ranges.heading = [0.0, 0.0]
     # if terrain_idx == None:
-    # env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.1, 0.1, 0.2]
-    env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
+    env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.1, 0.1, 0.2]
+    # env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
     # else:
     #     env_cfg.terrain.terrain_proportions = [0, 0, 0, 0, 0, 0]
     #     env_cfg.terrain.terrain_proportions[terrain_idx] = 1
@@ -153,7 +153,7 @@ def play(args):
     stop_rew_log = (
         env.max_episode_length + 1
     )  # number of steps before print average episode rewards
-    eval_laps = 4
+    eval_laps = 1
     camera_position = np.array(env_cfg.viewer.pos, dtype=np.float64)
     camera_vel = np.array([1.0, 1.0, 0.0])
     camera_direction = np.array(env_cfg.viewer.lookat) - np.array(env_cfg.viewer.pos)
@@ -223,7 +223,7 @@ def play(args):
             dim=1,
         )
         stop = time.time()
-        if i % 100 == 0:
+        if i % 1000 == 0:
             print(f"step {i} took {stop - start} seconds")
         if RECORD_FRAMES:
             if i % 2:
@@ -318,7 +318,9 @@ if __name__ == "__main__":
             )
             print(f"test {labels[i]} tracking error: {avr_tracking_errors[i]}")
             all_round_errors[labels[i]] = avr_tracking_errors[i]
-        log_dir = os.path.join(LEGGED_GYM_ROOT_DIR, "logs", "eval", args.load_run)
+        log_dir = os.path.join(
+            LEGGED_GYM_ROOT_DIR, "logs", "eval_" + args.task, args.load_run
+        )
         os.makedirs(log_dir, exist_ok=True)
         print("saving to ", log_dir)
         torch.save(

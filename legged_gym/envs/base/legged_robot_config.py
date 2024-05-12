@@ -34,7 +34,7 @@ from .base_config import BaseConfig
 class LeggedRobotCfg(BaseConfig):
     class env:
         num_envs = 4096
-        num_observations = 49  # 48
+        num_observations = 48  # 48
         num_privileged_obs = None  # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise
         privileged_dim = 203
         privileged_obs = False
@@ -163,7 +163,7 @@ class LeggedRobotCfg(BaseConfig):
 
     class rewards:
         class scales:
-            termination = -1.0  # -10.0
+            termination = -0.2  # -10.0
             tracking_lin_vel = 1.0
             tracking_ang_vel = 0.5
             lin_vel_z = -2.0  #
@@ -242,7 +242,7 @@ class LeggedRobotCfg(BaseConfig):
     class eval:
         eval_mode = -1
         # envs_per_scale = 4
-        envs_per_scale = 1  # can be modified as you want
+        envs_per_scale = 4  # can be modified as you want
 
         # 1) command vel_x overall test [0:12]
         command_scales_vel_x = [
@@ -286,10 +286,10 @@ class LeggedRobotCfgPPO(BaseConfig):
         # rnn_type = 'lstm'
         # rnn_hidden_size = 512
         # rnn_num_layers = 1
-        net_type = "transformer"  # can be mlp, lstm, gru, cnn, transformer
+        net_type = "cnn"  # can be mlp, lstm, gru, cnn, transformer
         transformer_direct_act = True  # add an fc for transformer or not. Activated if net_type="transformer"
-        num_latent = 12  # if net_type="transformer" and transformer_direct_act=True, set to number of actions.
-        history_lengths = [6, 66]
+        num_latent = 10  # if net_type="transformer" and transformer_direct_act=True, set to number of actions.
+        history_lengths = [1, 66]
 
     class algorithm:
         # training params

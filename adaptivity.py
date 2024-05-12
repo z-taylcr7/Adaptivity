@@ -34,8 +34,8 @@ labels = [
     "cmd_y_-1.5",
     "cmd_y_0.0",
     "cmd_y_1.5",
-    "fri_0.01",
     "fri_0.1",
+    "fri_0.5",
     "fri_1.0",
     "fri_2.0",
     "fri_5.0",
@@ -108,5 +108,5 @@ if __name__ == "__main__":
             plot_adaptivity(path)
     plt.legend(loc="upper center", bbox_to_anchor=(0.5, 0.10))
     plt.show()
-    plt.title("Tracking errors of different adaptivity strategies on rough only")
+    plt.title("Tracking errors of different adaptivity strategies: network structures")
     plt.savefig("radar_adaptivity.png")

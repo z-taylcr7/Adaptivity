@@ -75,6 +75,13 @@ class H1RoughCfg(LeggedRobotCfg):
             0.75  # slopes above this threshold will be corrected to vertical surfaces
         )
 
+    class commands(LeggedRobotCfg.commands):
+        class ranges(LeggedRobotCfg.commands.ranges):
+            lin_vel_x = [-0.1, 1.0]  # min max [m/s]
+            lin_vel_y = [0.0, 0.0]  # min max [m/s]
+            ang_vel_yaw = [0, 0]  # min max [rad/s]
+            heading = [0, 0]
+
     class asset(LeggedRobotCfg.asset):
         file = "{LEGGED_GYM_ROOT_DIR}/resources/robots/h1/urdf/h1.urdf"
         name = "h1"

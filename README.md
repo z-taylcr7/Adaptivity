@@ -13,6 +13,8 @@ python legged_gym/scripts/eval.py --headless --task=a1 --sim_device=cuda:0 --rl_
 python adaptivity.py <a.pt> <b.pt>
 ```
 
+It would be better add some args like *--net_type=<nt>*, --hist_design=<hd>,
+
 ### Metrics Description
 - Command velocity test
     - Fixed lin_vel_x
