@@ -251,15 +251,6 @@ class DualPolicyRunner:
                         dim=1,
                     )
 
-                    self.critic_trajectory_history[env_ids] = 0
-                    self.critic_trajectory_history = torch.concat(
-                        (
-                            self.critic_trajectory_history[:, 1:],
-                            critic_obs[:, :obs_dim].unsqueeze(1),
-                        ),
-                        dim=1,
-                    )
-
                     if self.log_dir is not None:
                         # Book keeping
                         if "episode" in infos:

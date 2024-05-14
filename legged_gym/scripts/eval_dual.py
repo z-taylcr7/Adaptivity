@@ -32,6 +32,7 @@ from legged_gym import LEGGED_GYM_ROOT_DIR
 import os
 import time
 
+import gym
 import isaacgym
 from legged_gym.envs import *
 from legged_gym.utils import (
@@ -71,21 +72,26 @@ def play(args):
         labels.append(f"mas_{mas}")
 
     env_cfg.env.num_envs = min(
-        env_cfg.env.num_envs, env_cfg.eval.envs_per_scale * len(labels), 1
+        env_cfg.env.num_envs, env_cfg.eval.envs_per_scale * len(labels)
     )
-    env_cfg.eval.eval_mode = args.eval_mode != "-1"
-    env_cfg.terrain.num_rows = 12
-    env_cfg.terrain.num_cols = 12
+    env_cfg.eval.eval_mode = args.eval_mode != "0"
+    env_cfg.terrain.num_rows = 6
+    env_cfg.terrain.num_cols = 6
     env_cfg.terrain.curriculum = False
-    if args.eval_mode == "-1":
+    if not args.eval_mode:
         env_cfg.env.num_envs = 1
-        env_cfg.commands.ranges.lin_vel_x = [0.5, 0.5]
+        env_cfg.commands.ranges.lin_vel_x = [0.3, 0.3]
         env_cfg.commands.ranges.lin_vel_y = [0.0, 0.0]
-        env_cfg.commands.ranges.ang_vel = [0.0, 0.0]
+        env_cfg.commands.ranges.ang_vel_yaw = [0.0, 0.0]
         env_cfg.commands.ranges.heading = [0.0, 0.0]
+        # env_cfg.domain_rand.restitution_range = [0.0, 0.0]
+        # env_cfg.domain_rand.com_pos_range = [0.0, 0.0]
+        # env_cfg.domain_rand.motor_strength_range = [1.0, 1.0]
+        # env_cfg.domain_rand.link_mass_range = [1.0, 1.0]
+
     # if terrain_idx == None:
-    env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.1, 0.1, 0.2]
-    # env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
+    # env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.1, 0.1, 0.2]
+    env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
     # else:
     #     env_cfg.terrain.terrain_proportions = [0, 0, 0, 0, 0, 0]
     #     env_cfg.terrain.terrain_proportions[terrain_idx] = 1
@@ -94,6 +100,7 @@ def play(args):
     train_cfg.runner.policy_class_name = "DualActorCritic"
     train_cfg.runner_class_name = "DualPolicyRunner"
     train_cfg.policy.net_type = train_cfg.runner.load_run.split("/")[0].split("_")[-1]
+    # train_cfg.policy.net_type = "transformer"
     if train_cfg.policy.net_type == "teacher":
         env_cfg.terrain.measure_heights = True
         env_cfg.env.privileged_obs = True
@@ -109,6 +116,14 @@ def play(args):
 
     # prepare environment
     env, _ = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
+    # env = gym.wrappers.RecordVideo(
+    #     env,
+    #     "./videos",
+    #     step_trigger=lambda step: step % 10000
+    #     == 0,  # record the videos every 10000 steps
+    #     video_length=100,  # for each video record up to 100 steps
+    # )
+    env.reset()
     obs = env.get_observations()
     # load policy
     # load_run = args.load_run
@@ -153,7 +168,7 @@ def play(args):
     stop_rew_log = (
         env.max_episode_length + 1
     )  # number of steps before print average episode rewards
-    eval_laps = 1
+    eval_laps = 2
     camera_position = np.array(env_cfg.viewer.pos, dtype=np.float64)
     camera_vel = np.array([1.0, 1.0, 0.0])
     camera_direction = np.array(env_cfg.viewer.lookat) - np.array(env_cfg.viewer.pos)
@@ -298,8 +313,8 @@ if __name__ == "__main__":
     RECORD_FRAMES = False
     MOVE_CAMERA = False
     args = get_args()
-    args.eval_mode = "-1"
-    EVAL = args.eval_mode != "-1"
+    # args.eval_mode = "0"
+    EVAL = args.eval_mode != "0"
     print(args.load_run)
 
     if EVAL:
