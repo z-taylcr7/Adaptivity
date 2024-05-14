@@ -193,31 +193,41 @@ class DualPolicyRunner:
             # Rollout
             with torch.no_grad():
                 for i in range(self.num_steps_per_env):
-                    if self.long_history_length > 0:
-                        if "transformer" in self.encoder.net_type:
-                            latent = self.encoder(
-                                self.trajectory_history, self.cur_timesteps
-                            )
-                        else:
-                            latent = self.encoder(self.trajectory_history)
-
-                    if self.short_history_length > 0:
-                        if self.long_history_length <= 0:
-                            concat_obs = self.trajectory_history[
+                    latent = self.encoder(self.trajectory_history, self.cur_timesteps)
+                    concat_obs = torch.concat(
+                        (
+                            self.trajectory_history[
                                 :, -self.short_history_length :, :obs_dim
-                            ].flatten(1)
-                        else:
-                            concat_obs = torch.concat(
-                                (
-                                    self.trajectory_history[
-                                        :, -self.short_history_length :, :obs_dim
-                                    ].flatten(1),
-                                    latent,
-                                ),
-                                dim=-1,
-                            )
-                    else:
-                        concat_obs = latent
+                            ].flatten(1),
+                            latent,
+                        ),
+                        dim=-1,
+                    )
+                    # if self.long_history_length > 0:
+                    #     if "transformer" in self.encoder.net_type:
+                    #         latent = self.encoder(
+                    #             self.trajectory_history, self.cur_timesteps
+                    #         )
+                    #     else:
+                    #         latent = self.encoder(self.trajectory_history)
+
+                    # if self.short_history_length > 0:
+                    #     if self.long_history_length <= 0:
+                    #         concat_obs = self.trajectory_history[
+                    #             :, -self.short_history_length :, :obs_dim
+                    #         ].flatten(1)
+                    #     else:
+                    #         concat_obs = torch.concat(
+                    #             (
+                    #                 self.trajectory_history[
+                    #                     :, -self.short_history_length :, :obs_dim
+                    #                 ].flatten(1),
+                    #                 latent,
+                    #             ),
+                    #             dim=-1,
+                    #         )
+                    # else:
+                    #     concat_obs = latent
 
                     concat_critic_obs = concat_obs
                     actions = self.alg.act(concat_obs, concat_critic_obs)

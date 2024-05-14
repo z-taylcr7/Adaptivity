@@ -72,11 +72,11 @@ def play(args):
         labels.append(f"mas_{mas}")
 
     env_cfg.env.num_envs = min(
-        env_cfg.env.num_envs, env_cfg.eval.envs_per_scale * len(labels)
+        env_cfg.env.num_envs, env_cfg.eval.envs_per_scale * len(labels), 10
     )
     env_cfg.eval.eval_mode = args.eval_mode != "0"
-    env_cfg.terrain.num_rows = 6
-    env_cfg.terrain.num_cols = 6
+    env_cfg.terrain.num_rows = 2
+    env_cfg.terrain.num_cols = 2
     env_cfg.terrain.curriculum = False
     if not args.eval_mode:
         env_cfg.env.num_envs = 1
@@ -279,7 +279,7 @@ def play(args):
                     .numpy(),
                 }
             )
-        elif i == stop_state_log:
+        elif i == eval_laps * stop_state_log:
             logger.plot_states()
             pass
         if 0 < i < stop_rew_log:
@@ -309,7 +309,7 @@ def play(args):
 
 
 if __name__ == "__main__":
-    EXPORT_POLICY = True
+    EXPORT_POLICY = False
     RECORD_FRAMES = False
     MOVE_CAMERA = False
     args = get_args()
