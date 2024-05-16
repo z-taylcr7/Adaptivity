@@ -72,9 +72,9 @@ class A1RoughCfg(LeggedRobotCfg):
         base_height_target = 0.25
 
         class scales(LeggedRobotCfg.rewards.scales):
-            torques = -0.02
-            dof_pos_limits = -20.0
-            dof_vel_limits = -1.0
+            torques = -0.002
+            dof_pos_limits = -25.0
+            dof_vel_limits = -0.02
 
 
 class A1RoughCfgPPO(LeggedRobotCfgPPO):

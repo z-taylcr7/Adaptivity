@@ -71,16 +71,19 @@ def play(args):
     for mas in env_cfg.eval.add_mass_scales:
         labels.append(f"mas_{mas}")
 
-    env_cfg.env.num_envs = min(
-        env_cfg.env.num_envs, env_cfg.eval.envs_per_scale * len(labels), 10
-    )
     env_cfg.eval.eval_mode = args.eval_mode != "0"
-    env_cfg.terrain.num_rows = 2
-    env_cfg.terrain.num_cols = 2
+    env_cfg.env.num_envs = (
+        min(env_cfg.env.num_envs, env_cfg.eval.envs_per_scale * len(labels))
+        if env_cfg.eval.eval_mode
+        else 10
+    )
+
+    env_cfg.terrain.num_rows = 12
+    env_cfg.terrain.num_cols = 12
     env_cfg.terrain.curriculum = False
     if not args.eval_mode:
         env_cfg.env.num_envs = 1
-        env_cfg.commands.ranges.lin_vel_x = [0.3, 0.3]
+        env_cfg.commands.ranges.lin_vel_x = [0.3, 0.5]
         env_cfg.commands.ranges.lin_vel_y = [0.0, 0.0]
         env_cfg.commands.ranges.ang_vel_yaw = [0.0, 0.0]
         env_cfg.commands.ranges.heading = [0.0, 0.0]
@@ -90,8 +93,8 @@ def play(args):
         # env_cfg.domain_rand.link_mass_range = [1.0, 1.0]
 
     # if terrain_idx == None:
-    # env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.1, 0.1, 0.2]
-    env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
+    env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.2, 0.2, 0.0]
+    # env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
     # else:
     #     env_cfg.terrain.terrain_proportions = [0, 0, 0, 0, 0, 0]
     #     env_cfg.terrain.terrain_proportions[terrain_idx] = 1
@@ -168,7 +171,7 @@ def play(args):
     stop_rew_log = (
         env.max_episode_length + 1
     )  # number of steps before print average episode rewards
-    eval_laps = 2
+    eval_laps = 5
     camera_position = np.array(env_cfg.viewer.pos, dtype=np.float64)
     camera_vel = np.array([1.0, 1.0, 0.0])
     camera_direction = np.array(env_cfg.viewer.lookat) - np.array(env_cfg.viewer.pos)

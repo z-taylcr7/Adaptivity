@@ -93,17 +93,19 @@ def play(args):
     train_cfg.runner.load_run = args.load_run
     train_cfg.runner.policy_class_name = "StudentActorCritic"
     train_cfg.runner_class_name = "StudentPolicyRunner"
-    train_cfg.policy.net_type = train_cfg.runner.load_run.split("/")[0].split("_")[-1]
+    # train_cfg.policy.net_type = train_cfg.runner.load_run.split("/")[0].split("_")[-1]
     if train_cfg.policy.net_type == "teacher":
         env_cfg.terrain.measure_heights = True
         env_cfg.env.privileged_obs = True
         env_cfg.env.num_observations = 251
     train_cfg.policy.history_lengths = [
         1,
-        int(train_cfg.runner.load_run.split("/")[1].split("_")[1].split("=")[1]),
+        66,
+        # int(train_cfg.runner.load_run.split("/")[1].split("_")[1].split("=")[1]),
     ]
     train_cfg.policy.num_latent = int(
-        train_cfg.runner.load_run.split("/")[1].split("_")[0].split("=")[1]
+        12
+        # train_cfg.runner.load_run.split("/")[1].split("_")[0].split("=")[1]
     )
     print("net type:", train_cfg.policy.net_type)
 

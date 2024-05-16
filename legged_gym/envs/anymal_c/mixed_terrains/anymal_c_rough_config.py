@@ -87,6 +87,9 @@ class AnymalCRoughCfg(LeggedRobotCfg):
     class domain_rand(LeggedRobotCfg.domain_rand):
         randomize_base_mass = True
         added_mass_range = [-5.0, 5.0]
+        randomize_kp_kd = True
+        kp_range = [70.0, 90.0]
+        kd_range = [1.5, 2.5]
 
     class rewards(LeggedRobotCfg.rewards):
         base_height_target = 0.5

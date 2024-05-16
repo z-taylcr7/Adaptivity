@@ -204,7 +204,7 @@ class LeggedRobot(BaseTask):
             rew = self.reward_functions[i]() * self.reward_scales[name]
             self.rew_buf += rew
             self.episode_sums[name] += rew
-            if "tracking_lin_vel" in name:
+            if "tracking_lin_vel" in name and self.cfg.eval.eval_mode:
                 cur_err = torch.sqrt(
                     -torch.log(torch.clip(self.reward_functions[i](), 0.0000001, 1.0))
                     * 0.25
@@ -226,8 +226,8 @@ class LeggedRobot(BaseTask):
 
         self.obs_buf = torch.cat(
             (
-                # self.base_lin_vel * self.obs_scales.lin_vel,
-                self.contact_filt.float() * 2 - 1.0,
+                self.base_lin_vel * self.obs_scales.lin_vel,
+                # self.contact_filt.float() * 2 - 1.0,
                 self.base_ang_vel * self.obs_scales.ang_vel,
                 self.projected_gravity,
                 self.commands[:, :3] * self.commands_scale,

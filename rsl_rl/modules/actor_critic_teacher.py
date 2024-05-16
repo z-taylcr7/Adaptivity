@@ -51,7 +51,7 @@ class TeacherActorCritic(nn.Module):
         activation="elu",
         init_noise_std=1.0,
         latent_dim=12,
-        privileged_dim=187 + 16,
+        privileged_dim=203,
         **kwargs,
     ):
         if kwargs:
