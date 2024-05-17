@@ -29,6 +29,7 @@ class H1RoughCfg(LeggedRobotCfg):
     class env(LeggedRobotCfg.env):
         num_observations = 42
         num_actions = 10
+        privileged_dim = 197
 
     class terrain(LeggedRobotCfg.terrain):
         mesh_type = "plane"  # "heightfield" # none, plane, heightfield or trimesh

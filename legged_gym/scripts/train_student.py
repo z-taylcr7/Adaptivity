@@ -53,11 +53,13 @@ def train(args):
 
     train_cfg.runner.run_name = "student"
     train_cfg.runner.resume = True
-    train_cfg.runner.load_run = "rma_teacher/y=12_l=66_v=3.0"
+    train_cfg.runner.load_run = "rma_teacher/"
     train_cfg.runner.checkpoint = -1
     env_cfg.terrain.measure_heights = True
     env_cfg.env.privileged_obs = True
-    env_cfg.env.num_observations = 251
+    env_cfg.env.num_observations = (
+        env_cfg.env.num_observations + env_cfg.env.privileged_dim
+    )
 
     env, env_cfg = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
     ppo_runner, train_cfg = task_registry.make_student_runner(

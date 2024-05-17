@@ -34,7 +34,7 @@ from .base_config import BaseConfig
 class LeggedRobotCfg(BaseConfig):
     class env:
         num_envs = 4096
-        num_observations = 48  # 48
+        num_observations = 49  # 48
         num_privileged_obs = None  # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise
         privileged_dim = 203
         privileged_obs = False
@@ -163,7 +163,7 @@ class LeggedRobotCfg(BaseConfig):
 
     class rewards:
         class scales:
-            termination = -1.0  # -10.0
+            termination = -10.0  # -10.0
             tracking_lin_vel = 1.0
             tracking_ang_vel = 0.5
             lin_vel_z = -2.0  #
@@ -243,7 +243,7 @@ class LeggedRobotCfg(BaseConfig):
     class eval:
         eval_mode = False
         # envs_per_scale = 4
-        envs_per_scale = 4  # can be modified as you want
+        envs_per_scale = 20  # can be modified as you want
 
         # 1) command vel_x overall test [0:12]
         command_scales_vel_x = [

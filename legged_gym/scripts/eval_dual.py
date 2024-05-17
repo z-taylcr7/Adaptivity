@@ -75,14 +75,13 @@ def play(args):
     env_cfg.env.num_envs = (
         min(env_cfg.env.num_envs, env_cfg.eval.envs_per_scale * len(labels))
         if env_cfg.eval.eval_mode
-        else 10
+        else 100
     )
 
-    env_cfg.terrain.num_rows = 12
-    env_cfg.terrain.num_cols = 12
+    env_cfg.terrain.num_rows = 6
+    env_cfg.terrain.num_cols = 8
     env_cfg.terrain.curriculum = False
-    if not args.eval_mode:
-        env_cfg.env.num_envs = 1
+    if not env_cfg.eval.eval_mode:
         env_cfg.commands.ranges.lin_vel_x = [0.3, 0.5]
         env_cfg.commands.ranges.lin_vel_y = [0.0, 0.0]
         env_cfg.commands.ranges.ang_vel_yaw = [0.0, 0.0]
@@ -93,8 +92,8 @@ def play(args):
         # env_cfg.domain_rand.link_mass_range = [1.0, 1.0]
 
     # if terrain_idx == None:
-    env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.2, 0.2, 0.0]
-    # env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
+    # env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.2, 0.2, 0.0]
+    env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
     # else:
     #     env_cfg.terrain.terrain_proportions = [0, 0, 0, 0, 0, 0]
     #     env_cfg.terrain.terrain_proportions[terrain_idx] = 1
@@ -107,7 +106,9 @@ def play(args):
     if train_cfg.policy.net_type == "teacher":
         env_cfg.terrain.measure_heights = True
         env_cfg.env.privileged_obs = True
-        env_cfg.env.num_observations = 251
+        env_cfg.env.num_observations = (
+            env_cfg.env.num_observations + env_cfg.env.privileged_dim
+        )
     train_cfg.policy.history_lengths = [
         1,
         int(train_cfg.runner.load_run.split("/")[1].split("_")[1].split("=")[1]),
@@ -283,7 +284,7 @@ def play(args):
                 }
             )
         elif i == eval_laps * stop_state_log:
-            logger.plot_states()
+            # logger.plot_states()
             pass
         if 0 < i < stop_rew_log:
             if infos["episode"]:

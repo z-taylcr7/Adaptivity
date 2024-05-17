@@ -67,14 +67,75 @@ class A1RoughCfg(LeggedRobotCfg):
         terminate_after_contacts_on = ["base"]
         self_collisions = 1  # 1 to disable, 0 to enable...bitwise filter
 
+    class domain_rand:
+        randomize_friction = True
+        friction_range = [-0.2, 1.25]
+        randomize_base_mass = True
+        added_mass_range = [-1.5, 1.5]
+        randomize_dof_bias = True
+        max_dof_bias = 0.08
+        randomize_timer_minus = (
+            2.0  # timer_left is initialized with randomization: U(T-this, T)
+        )
+
+        push_robots = True
+        push_interval_s = 2.5
+        max_push_vel_xy = 0.0  # not used
+
+        randomize_yaw = True
+        init_yaw_range = [-3.14, 3.14]
+        randomize_roll = False
+        randomize_pitch = False
+        randomize_xy = True
+        init_x_range = [-0.5, 0.5]
+        init_y_range = [-0.5, 0.5]
+        randomize_velo = True
+        init_vlinx_range = [-0.5, 0.5]
+        init_vliny_range = [-0.5, 0.5]
+        init_vlinz_range = [-0.5, 0.5]
+        init_vang_range = [-0.5, 0.5]
+        randomize_init_dof = True
+        init_dof_factor = [0.5, 1.5]
+        stand_bias3 = [0.0, 0.0, 0.0]
+
+        erfi = True
+        erfi_torq_lim = 7.0 / 9  # per level, curriculum
+
     class rewards(LeggedRobotCfg.rewards):
-        soft_dof_pos_limit = 0.9
-        base_height_target = 0.25
 
         class scales(LeggedRobotCfg.rewards.scales):
-            torques = -0.002
-            dof_pos_limits = -25.0
-            dof_vel_limits = -0.02
+            termination = -100.0
+            reach_pos_target_soft = 60.0
+            reach_pos_target_tight = 60.0
+            reach_heading_target = 30.0
+            reach_pos_target_times_heading = 0.0
+            velo_dir = 10.0
+            torques = -0.0005
+            dof_pos_limits = -20.0
+            dof_vel_limits = -0.0005
+            torque_limits = -20.0
+            dof_vel_limits = -20.0
+            lin_vel_z = -2.0
+            ang_vel_xy = -0.05
+            dof_acc = -2.0e-7
+            collision = -100.0
+            feet_collision = -100.0
+            action_rate = -0.01
+            stand_still_pos = -10.0
+            orientation = -20.0
+            fly = -20.0
+            nomove = -20.0
+
+        soft_dof_pos_limit = 0.95
+        base_height_target = 0.25
+        only_positive_rewards = False
+        position_target_sigma_soft = 2.0
+        position_target_sigma_tight = 0.5
+        heading_target_sigma = 1.0
+        rew_duration = 2.0
+        soft_dof_vel_limit = 0.9
+        soft_torque_limit = 0.85
+        max_contact_force = 100.0
 
 
 class A1RoughCfgPPO(LeggedRobotCfgPPO):
