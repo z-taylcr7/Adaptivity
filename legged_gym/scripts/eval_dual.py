@@ -75,17 +75,19 @@ def play(args):
     env_cfg.env.num_envs = (
         min(env_cfg.env.num_envs, env_cfg.eval.envs_per_scale * len(labels))
         if env_cfg.eval.eval_mode
-        else 100
+        else 20
     )
 
     env_cfg.terrain.num_rows = 6
     env_cfg.terrain.num_cols = 8
     env_cfg.terrain.curriculum = False
     if not env_cfg.eval.eval_mode:
-        env_cfg.commands.ranges.lin_vel_x = [0.3, 0.5]
+        env_cfg.commands.ranges.lin_vel_x = [0.3, 1.5]
         env_cfg.commands.ranges.lin_vel_y = [0.0, 0.0]
         env_cfg.commands.ranges.ang_vel_yaw = [0.0, 0.0]
         env_cfg.commands.ranges.heading = [0.0, 0.0]
+        env_cfg.terrain.num_rows = 3
+        env_cfg.terrain.num_cols = 3
         # env_cfg.domain_rand.restitution_range = [0.0, 0.0]
         # env_cfg.domain_rand.com_pos_range = [0.0, 0.0]
         # env_cfg.domain_rand.motor_strength_range = [1.0, 1.0]
@@ -172,7 +174,7 @@ def play(args):
     stop_rew_log = (
         env.max_episode_length + 1
     )  # number of steps before print average episode rewards
-    eval_laps = 5
+    eval_laps = 3
     camera_position = np.array(env_cfg.viewer.pos, dtype=np.float64)
     camera_vel = np.array([1.0, 1.0, 0.0])
     camera_direction = np.array(env_cfg.viewer.lookat) - np.array(env_cfg.viewer.pos)

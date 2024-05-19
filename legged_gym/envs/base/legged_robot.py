@@ -166,6 +166,13 @@ class LeggedRobot(BaseTask):
         self._resample_commands(env_ids)
 
         # reset buffers
+        if self.cfg.domain_rand.randomize_dof_bias:
+            self.dof_bias[env_ids] = self.dof_bias[env_ids].uniform_(
+                -self.cfg.domain_rand.max_dof_bias, self.cfg.domain_rand.max_dof_bias
+            )
+        if self.cfg.domain_rand.erfi:
+            self.erfi_rnd[env_ids] = self.erfi_rnd[env_ids].uniform_(0.0, 1.0)
+
         self.last_actions[env_ids] = 0.0
         self.last_dof_vel[env_ids] = 0.0
         self.feet_air_time[env_ids] = 0.0
@@ -635,6 +642,20 @@ class LeggedRobot(BaseTask):
             torques = actions_scaled
         else:
             raise NameError(f"Unknown controller type: {control_type}")
+
+        if self.cfg.domain_rand.erfi:
+            torques = (
+                torques
+                + (self.erfi_rnd < 0.5)
+                * (self.erfi_rnd * 4 - 1.0)
+                * self.cfg.domain_rand.erfi_torq_lim
+                * self.terrain_levels.float().unsqueeze(1)
+                + (self.erfi_rnd > 0.5)
+                * (torch.rand_like(torques) * 2 - 1.0)
+                * self.cfg.domain_rand.erfi_torq_lim
+                * self.terrain_levels.float().unsqueeze(1)
+            )
+
         return torch.clip(torques, -self.torque_limits, self.torque_limits)
 
     def _reset_dofs(self, env_ids):
@@ -648,6 +669,23 @@ class LeggedRobot(BaseTask):
         self.dof_pos[env_ids] = self.default_dof_pos * torch_rand_float(
             0.5, 1.5, (len(env_ids), self.num_dof), device=self.device
         )
+        if self.cfg.domain_rand.randomize_init_dof:  # xy position randomized
+            # add the bias position for standing
+            stand_bias = torch.zeros_like(self.dof_pos[env_ids])
+            stand_bias[:, 0::3] += self.cfg.domain_rand.stand_bias3[0]
+            stand_bias[:, 1::3] += self.cfg.domain_rand.stand_bias3[1]
+            stand_bias[:, 2::3] += self.cfg.domain_rand.stand_bias3[2]
+            self.dof_pos[env_ids] = (
+                self.default_dof_pos
+                * torch_rand_float(
+                    self.cfg.domain_rand.init_dof_factor[0],
+                    self.cfg.domain_rand.init_dof_factor[1],
+                    (len(env_ids), self.num_dof),
+                    device=self.device,
+                )
+                + stand_bias
+            )
+
         self.dof_vel[env_ids] = 0.0
 
         env_ids_int32 = env_ids.to(dtype=torch.int32)
@@ -669,16 +707,79 @@ class LeggedRobot(BaseTask):
         if self.custom_origins:
             self.root_states[env_ids] = self.base_init_state
             self.root_states[env_ids, :3] += self.env_origins[env_ids]
-            self.root_states[env_ids, :2] += torch_rand_float(
-                -1.0, 1.0, (len(env_ids), 2), device=self.device
-            )  # xy position within 1m of the center
+            # self.root_states[env_ids, :2] += torch_rand_float(
+            #     -1.0, 1.0, (len(env_ids), 2), device=self.device
+            # )  # xy position within 1m of the center
+            if self.cfg.domain_rand.randomize_xy:  # xy position randomized
+                self.root_states[env_ids, 0:1] += torch_rand_float(
+                    self.cfg.domain_rand.init_x_range[0],
+                    self.cfg.domain_rand.init_x_range[1],
+                    (len(env_ids), 1),
+                    device=self.device,
+                )
+                self.root_states[env_ids, 1:2] += torch_rand_float(
+                    self.cfg.domain_rand.init_y_range[0],
+                    self.cfg.domain_rand.init_y_range[1],
+                    (len(env_ids), 1),
+                    device=self.device,
+                )
+
         else:
             self.root_states[env_ids] = self.base_init_state
             self.root_states[env_ids, :3] += self.env_origins[env_ids]
+        if self.cfg.domain_rand.randomize_yaw:  # yaw
+            _yaw = torch.zeros_like(self.root_states[env_ids, 3]).uniform_(
+                self.cfg.domain_rand.init_yaw_range[0],
+                self.cfg.domain_rand.init_yaw_range[1],
+            )
+        else:
+            _yaw = torch.zeros_like(self.root_states[env_ids, 3])
+        if self.cfg.domain_rand.randomize_roll:  # roll
+            roll = torch.zeros_like(self.root_states[env_ids, 3]).uniform_(
+                self.cfg.domain_rand.init_roll_range[0],
+                self.cfg.domain_rand.init_roll_range[1],
+            )
+        else:
+            roll = torch.zeros_like(self.root_states[env_ids, 3])
+        if self.cfg.domain_rand.randomize_pitch:  # pitch
+            pitch = torch.zeros_like(self.root_states[env_ids, 3]).uniform_(
+                self.cfg.domain_rand.init_pitch_range[0],
+                self.cfg.domain_rand.init_pitch_range[1],
+            )
+        else:
+            pitch = torch.zeros_like(self.root_states[env_ids, 3])
+        self.root_states[env_ids, 3:7] = quat_from_euler_xyz(roll, pitch, _yaw)
+
         # base velocities
-        self.root_states[env_ids, 7:13] = torch_rand_float(
-            -0.5, 0.5, (len(env_ids), 6), device=self.device
-        )  # [7:10]: lin vel, [10:13]: ang vel
+        # self.root_states[env_ids, 7:13] = torch_rand_float(
+        #     -0.5, 0.5, (len(env_ids), 6), device=self.device
+        # )  # [7:10]: lin vel, [10:13]: ang vel
+        if self.cfg.domain_rand.randomize_velo:
+            self.root_states[env_ids, 7:8] = torch_rand_float(
+                self.cfg.domain_rand.init_vlinx_range[0],
+                self.cfg.domain_rand.init_vlinx_range[1],
+                (len(env_ids), 1),
+                device=self.device,
+            )  # [7:10]: lin vel
+            self.root_states[env_ids, 8:9] = torch_rand_float(
+                self.cfg.domain_rand.init_vliny_range[0],
+                self.cfg.domain_rand.init_vliny_range[1],
+                (len(env_ids), 1),
+                device=self.device,
+            )  # [7:10]: lin vel
+            self.root_states[env_ids, 9:10] = torch_rand_float(
+                self.cfg.domain_rand.init_vlinz_range[0],
+                self.cfg.domain_rand.init_vlinz_range[1],
+                (len(env_ids), 1),
+                device=self.device,
+            )  # [7:10]: lin vel
+            self.root_states[env_ids, 10:13] = torch_rand_float(
+                self.cfg.domain_rand.init_vang_range[0],
+                self.cfg.domain_rand.init_vang_range[1],
+                (len(env_ids), 3),
+                device=self.device,
+            )  # [10:13]: ang vel
+
         env_ids_int32 = env_ids.to(dtype=torch.int32)
         self.gym.set_actor_root_state_tensor_indexed(
             self.sim,
@@ -690,7 +791,7 @@ class LeggedRobot(BaseTask):
     def _push_robots(self):
         """Random pushes the robots. Emulates an impulse by setting a randomized base velocity."""
         max_vel = self.cfg.domain_rand.max_push_vel_xy
-        self.root_states[:, 7:9] = torch_rand_float(
+        self.root_states[:, 7:9] = self.root_states[:, 7:9] + torch_rand_float(
             -max_vel, max_vel, (self.num_envs, 2), device=self.device
         )  # lin vel x/y
         self.gym.set_actor_root_state_tensor(
@@ -943,6 +1044,14 @@ class LeggedRobot(BaseTask):
                 self.env_kps[env_id] = kp
                 self.env_kds[env_id] = kd
         self.default_dof_pos = self.default_dof_pos.unsqueeze(0)
+        self.dof_bias = torch.zeros(self.num_envs, self.num_actions, device=self.device)
+        if self.cfg.domain_rand.randomize_dof_bias:
+            self.dof_bias.uniform_(
+                -self.cfg.domain_rand.max_dof_bias, self.cfg.domain_rand.max_dof_bias
+            )
+        self.erfi_rnd = torch.zeros(self.num_envs, self.num_actions, device=self.device)
+        if self.cfg.domain_rand.erfi:
+            self.erfi_rnd.uniform_(0.0, 1.0)
 
     def _prepare_reward_function(self):
         """Prepares a list of reward functions, whcih will be called to compute the total reward.
@@ -1483,6 +1592,12 @@ class LeggedRobot(BaseTask):
             ).clip(min=0.0),
             dim=1,
         )
+
+    def _reward_feet_collision(self):
+        hor_footforce = self.contact_forces[:, self.feet_indices, 0:2].norm(dim=-1)
+        ver_footforce = torch.abs(self.contact_forces[:, self.feet_indices, 2])
+        foot_hor_col = torch.any(hor_footforce > 2 * ver_footforce + 10.0, dim=-1)
+        return foot_hor_col.float() * 1.0
 
     def _reward_fly(self):
         fly = torch.sum(self.contact_filt.float(), dim=-1) < 0.5

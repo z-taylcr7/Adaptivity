@@ -149,7 +149,7 @@ class DualHistEncoder(nn.Module):
                 n_blocks=1,
                 h_dim=y_dim,
                 context_len=self.long_history_length,
-                n_heads=4,
+                n_heads=1,
                 drop_p=0.05,
                 max_timestep=4096,
                 # max_timestep=256,

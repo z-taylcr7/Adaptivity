@@ -111,7 +111,6 @@ class StudentPolicyRunner:
             short_history_length=self.short_history_length,
             long_history_length=self.long_history_length,
             action_dim=self.env.num_actions,
-            net_type="transformer",
             device=self.device,
             y_dim=self.policy_cfg["num_latent"],
         ).to(self.device)
@@ -422,7 +421,7 @@ class StudentPolicyRunner:
         )
 
     def load(self, path, load_optimizer=True, load_student_encoder=False):
-        loaded_dict = torch.load(path)
+        loaded_dict = torch.load(path, map_location=self.device)
         self.teacher_alg.actor_critic.load_state_dict(
             loaded_dict["model_state_dict"], strict=False
         )

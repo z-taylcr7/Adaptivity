@@ -34,7 +34,7 @@ from .base_config import BaseConfig
 class LeggedRobotCfg(BaseConfig):
     class env:
         num_envs = 4096
-        num_observations = 49  # 48
+        num_observations = 48  # 48
         num_privileged_obs = None  # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise
         privileged_dim = 203
         privileged_obs = False
@@ -82,7 +82,8 @@ class LeggedRobotCfg(BaseConfig):
         num_rows = 10  # number of terrain rows (levels)
         num_cols = 20  # number of terrain cols (types)
         # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete]
-        terrain_proportions = [0.1, 0.1, 0.35, 0.25, 0.2]
+        # terrain_proportions = [0.1, 0.1, 0.35, 0.25, 0.2]
+        terrain_proportions = [0.3, 0.4, 0.1, 0.1, 1.1]
         # trimesh only:
         slope_treshold = (
             0.75  # slopes above this threshold will be corrected to vertical surfaces
@@ -160,32 +161,55 @@ class LeggedRobotCfg(BaseConfig):
         randomize_kp_kd = True
         kp_range = [23.0, 33.0]
         kd_range = [0.60, 0.80]
+        randomize_dof_bias = False
+        max_dof_bias = 0.08
+        randomize_timer_minus = (
+            2.0  # timer_left is initialized with randomization: U(T-this, T)
+        )
+
+        randomize_yaw = False
+        init_yaw_range = [-3.14, 3.14]
+        randomize_roll = False
+        randomize_pitch = False
+        randomize_xy = False
+        init_x_range = [-0.5, 0.5]
+        init_y_range = [-0.5, 0.5]
+        randomize_velo = False
+        init_vlinx_range = [-0.3, 0.3]
+        init_vliny_range = [-0.3, 0.3]
+        init_vlinz_range = [-0.5, 0.5]
+        init_vang_range = [-0.5, 0.5]
+        randomize_init_dof = False
+        init_dof_factor = [0.5, 1.5]
+        stand_bias3 = [0.0, 0.0, 0.0]
+        erfi = False
+        erfi_torq_lim = 7.0 / 9  # per level, curriculum
 
     class rewards:
         class scales:
-            termination = -10.0  # -10.0
+            termination = -0.0  # -10.0
             tracking_lin_vel = 1.0
             tracking_ang_vel = 0.5
             lin_vel_z = -2.0  #
             ang_vel_xy = -0.05
             orientation = -0.0
-            torques = -0.0002
+            torques = -0.00001
             dof_vel = -0.0  #
             dof_acc = -2.5e-7  #
-            base_height = -0.0
+            base_height = -0.0  # -0.01
             feet_air_time = 1.0
             collision = -1.0
             feet_stumble = -0.0
-            action_rate = -0.01  #
+            action_rate = -0.01  # -0.02
             stand_still = -0.0
 
         only_positive_rewards = True  # if true negative total rewards are clipped at zero (avoids early termination problems)
         tracking_sigma = 0.25  # tracking reward = exp(-error^2/sigma)
         soft_dof_pos_limit = (
-            0.9  # percentage of urdf limits, values above this limit are penalized
+            1.0  # percentage of urdf limits, values above this limit are penalized
         )
-        soft_dof_vel_limit = 0.9
-        soft_torque_limit = 0.8
+        soft_dof_vel_limit = 1.0
+        soft_torque_limit = 1.0
 
         base_height_target = 1.0
         max_contact_force = 100.0  # forces above this value are penalized
@@ -243,7 +267,7 @@ class LeggedRobotCfg(BaseConfig):
     class eval:
         eval_mode = False
         # envs_per_scale = 4
-        envs_per_scale = 20  # can be modified as you want
+        envs_per_scale = 10  # can be modified as you want
 
         # 1) command vel_x overall test [0:12]
         command_scales_vel_x = [

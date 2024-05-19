@@ -35,6 +35,7 @@ class AnymalCRoughCfg(LeggedRobotCfg):
     class env(LeggedRobotCfg.env):
         num_envs = 4096
         num_actions = 12
+        privileged_dim = 201
 
     class terrain(LeggedRobotCfg.terrain):
         mesh_type = "trimesh"
@@ -79,17 +80,17 @@ class AnymalCRoughCfg(LeggedRobotCfg):
 
     class commands(LeggedRobotCfg.commands):
         class ranges(LeggedRobotCfg.commands.ranges):
-            lin_vel_x = [-0.5, 1.5]  # min max [m/s]
-            lin_vel_y = [-0.5, 0.5]  # min max [m/s]
-            ang_vel_yaw = [-0.5, 0.5]  # min max [rad/s]
+            lin_vel_x = [0.0, 1.5]  # min max [m/s]
+            lin_vel_y = [0.0, 0.0]  # min max [m/s]
+            ang_vel_yaw = [0.0, 0.0]  # min max [rad/s]
             heading = [-3.14, 3.14]
 
     class domain_rand(LeggedRobotCfg.domain_rand):
         randomize_base_mass = True
         added_mass_range = [-5.0, 5.0]
-        randomize_kp_kd = True
-        kp_range = [80.0, 80.0]
-        kd_range = [1.5, 2.5]
+        randomize_kp_kd = False
+        # kp_range = [80.0, 80.0]
+        # kd_range = [1.5, 2.5]
 
     class rewards(LeggedRobotCfg.rewards):
         base_height_target = 0.5

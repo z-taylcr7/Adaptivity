@@ -53,7 +53,7 @@ def train(args):
 
     train_cfg.runner.run_name = "student"
     train_cfg.runner.resume = True
-    train_cfg.runner.load_run = "rma_teacher/"
+    train_cfg.runner.load_run = "rma_teacher/rma_teacher_v=3.0"
     train_cfg.runner.checkpoint = -1
     env_cfg.terrain.measure_heights = True
     env_cfg.env.privileged_obs = True

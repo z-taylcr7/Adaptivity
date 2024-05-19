@@ -86,7 +86,7 @@ def radar(values, labels, name):
     # ax.set_yticklabels([])
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(labels)
-    r_ticks = np.linspace(0, 0.5, 11)  # 根据你的数据范围调整
+    r_ticks = np.linspace(0, 0.8, 11)  # 根据你的数据范围调整
     ax.set_rgrids(r_ticks)
 
 
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     if args.path is not None:
         for path in args.path:
             plot_adaptivity(path)
-    plt.legend(loc="upper center", bbox_to_anchor=(0.5, 0.10))
+    plt.legend(loc="lower left")
     plt.show()
-    plt.title("Tracking errors of different adaptivity strategies: network structures")
+    plt.title("Tracking errors of different adaptivity strategies: History Designs")
     plt.savefig("radar_adaptivity.png")
