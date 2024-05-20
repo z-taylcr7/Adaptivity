@@ -44,7 +44,7 @@ class LeggedRobotCfg(BaseConfig):
         episode_length_s = 20  # episode length in seconds
 
     class terrain:
-        mesh_type = "trimesh"  # "heightfield" # none, plane, heightfield or trimesh
+        mesh_type = "plane"  # "heightfield" # none, plane, heightfield or trimesh
         horizontal_scale = 0.1  # [m]
         vertical_scale = 0.005  # [m]
         border_size = 25  # [m]
@@ -101,10 +101,16 @@ class LeggedRobotCfg(BaseConfig):
             lin_vel_y = [-1.0, 1.0]  # min max [m/s]
             ang_vel_yaw = [-1, 1]  # min max [rad/s]
             heading = [-3.14, 3.14]
-            # lin_vel_x = [-1.0, 1.0]  # min max [m/s]
+
+            # lin_vel_x = [-0.4, 0.8]  # min max [m/s]
+            # lin_vel_y = [-0.2, 0.2]  # min max [m/s]
+            # ang_vel_yaw = [-0.2, 0.2]  # min max [rad/s]
+            # heading = [-3.14 / 4, 3.14 / 4]
+
+            # lin_vel_x = [-0.0, 1.0]  # min max [m/s]
             # lin_vel_y = [-0.1, 0.1]  # min max [m/s]
             # ang_vel_yaw = [-1, 1]  # min max [rad/s]
-            # heading = [-3.14, 3.14]
+            # heading = [0, 0]
 
     class init_state:
         pos = [0.0, 0.0, 1.0]  # x,y,z [m]
@@ -184,6 +190,12 @@ class LeggedRobotCfg(BaseConfig):
         stand_bias3 = [0.0, 0.0, 0.0]
         erfi = False
         erfi_torq_lim = 7.0 / 9  # per level, curriculum
+        randomize_motor_strength = False
+
+        motor_strength_range = [0.9, 1.1]
+        randomize_action_latency = False
+        randomize_obs_latency = False
+        latency_range = [0.00, 0.02]
 
     class rewards:
         class scales:
@@ -220,6 +232,7 @@ class LeggedRobotCfg(BaseConfig):
             ang_vel = 0.25
             dof_pos = 1.0
             dof_vel = 0.05
+            foot_contact = 0.1
             height_measurements = 5.0
 
         clip_observations = 100.0
@@ -267,7 +280,7 @@ class LeggedRobotCfg(BaseConfig):
     class eval:
         eval_mode = False
         # envs_per_scale = 4
-        envs_per_scale = 10  # can be modified as you want
+        envs_per_scale = 4  # can be modified as you want
 
         # 1) command vel_x overall test [0:12]
         command_scales_vel_x = [

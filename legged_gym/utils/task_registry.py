@@ -163,7 +163,7 @@ class TaskRegistry:
             )
             log_dir = os.path.join(
                 log_root,
-                "dual_" + train_cfg.policy.net_type,
+                "dual_" + train_cfg.policy.net_type +"_real",
                 "y="
                 + str(train_cfg.policy.num_latent)
                 + "_l="
@@ -426,7 +426,7 @@ class TaskRegistry:
             runner = StudentPolicyRunner(
                 env, train_cfg_dict, log_dir, device=args.rl_device
             )
-            
+
         # save resume path before creating a new log_dir
         resume = train_cfg.runner.resume
         if resume:

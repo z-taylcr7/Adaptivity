@@ -47,6 +47,27 @@ class LeggedRobot(BaseTask):
             self.set_camera(self.cfg.viewer.pos, self.cfg.viewer.lookat)
         self._init_buffers()
         self._prepare_reward_function()
+        self.latency_range = [
+            int((self.cfg.domain_rand.latency_range[0] + 1e-8) / self.sim_params.dt),
+            int((self.cfg.domain_rand.latency_range[1] - 1e-8) / self.sim_params.dt)
+            + 1,
+        ]
+        self.latency_interal_range = [
+            (
+                self.cfg.domain_rand.latency_range[0]
+                - self.latency_range[0] * self.sim_params.dt
+            )
+            / self.sim_params.dt
+            / (self.latency_range[1] - self.latency_range[0]),
+            (
+                self.cfg.domain_rand.latency_range[1]
+                - self.latency_range[0] * self.sim_params.dt
+            )
+            / self.sim_params.dt
+            / (self.latency_range[1] - self.latency_range[0]),
+        ]
+        print("latency range:", self.latency_range)
+        print("latency interal range:", self.latency_interal_range)
         self.init_done = True
 
     def step(self, actions):
@@ -55,12 +76,22 @@ class LeggedRobot(BaseTask):
         Args:
             actions (torch.Tensor): Tensor of shape (num_envs, num_actions_per_env)
         """
+        rng = self.latency_range
+        action_latency = np.random.randint(rng[0], rng[1])
         clip_actions = self.cfg.normalization.clip_actions
         self.actions = torch.clip(actions, -clip_actions, clip_actions).to(self.device)
         # step physics and render each frame
         self.render()
         for _ in range(self.cfg.control.decimation):
-            self.torques = self._compute_torques(self.actions).view(self.torques.shape)
+            if self.cfg.domain_rand.randomize_action_latency and _ < action_latency:
+                self.torques = self._compute_torques(self.last_actions).view(
+                    self.torques.shape
+                )
+            else:
+                self.torques = self._compute_torques(self.actions).view(
+                    self.torques.shape
+                )
+
             self.gym.set_dof_actuation_force_tensor(
                 self.sim, gymtorch.unwrap_tensor(self.torques)
             )
@@ -68,6 +99,48 @@ class LeggedRobot(BaseTask):
             if self.device == "cpu":
                 self.gym.fetch_results(self.sim, True)
             self.gym.refresh_dof_state_tensor(self.sim)
+            if self.cfg.domain_rand.randomize_obs_latency and _ == (
+                self.cfg.control.decimation - 1 - self.latency_range[0]
+            ):
+                self.gym.refresh_actor_root_state_tensor(self.sim)
+                self.gym.refresh_net_contact_force_tensor(self.sim)
+                self.gym.refresh_force_sensor_tensor(self.sim)
+                # prepare quantities
+                self.base_quat[:] = self.root_states[:, 3:7]
+                self.base_lin_vel[:] = quat_rotate_inverse(
+                    self.base_quat, self.root_states[:, 7:10]
+                )
+                self.base_ang_vel[:] = quat_rotate_inverse(
+                    self.base_quat, self.root_states[:, 10:13]
+                )
+                self.projected_gravity[:] = quat_rotate_inverse(
+                    self.base_quat, self.gravity_vec
+                )
+                self.compute_latency_right_obs(
+                    torch.arange(self.num_envs, device=self.device)
+                )
+
+            if self.cfg.domain_rand.randomize_obs_latency and _ == (
+                self.cfg.control.decimation - 1 - self.latency_range[1]
+            ):
+                self.gym.refresh_actor_root_state_tensor(self.sim)
+                self.gym.refresh_net_contact_force_tensor(self.sim)
+                self.gym.refresh_force_sensor_tensor(self.sim)
+                # prepare quantities
+                self.base_quat[:] = self.root_states[:, 3:7]
+                self.base_lin_vel[:] = quat_rotate_inverse(
+                    self.base_quat, self.root_states[:, 7:10]
+                )
+                self.base_ang_vel[:] = quat_rotate_inverse(
+                    self.base_quat, self.root_states[:, 10:13]
+                )
+                self.projected_gravity[:] = quat_rotate_inverse(
+                    self.base_quat, self.gravity_vec
+                )
+                self.compute_latency_left_obs(
+                    torch.arange(self.num_envs, device=self.device)
+                )
+
         self.post_physics_step()
 
         # return clipped obs, clipped states (None), rewards, dones and infos
@@ -115,6 +188,9 @@ class LeggedRobot(BaseTask):
         self.compute_reward()
         env_ids = self.reset_buf.nonzero(as_tuple=False).flatten()
         self.reset_idx(env_ids)
+        if len(env_ids) > 0:
+            self.compute_latency_left_obs(env_ids)
+            self.compute_latency_right_obs(env_ids)
         self.compute_observations()  # in some cases a simulation step might be required to refresh some obs (for example body positions)
 
         self.last_actions[:] = self.actions[:]
@@ -180,6 +256,7 @@ class LeggedRobot(BaseTask):
         self.contact_filt[env_ids] = False
         self.last_contacts[env_ids] = False
         self.reset_buf[env_ids] = 1
+        self.latency_actions[env_ids] = 0.0
         # fill extras
         self.extras["episode"] = {}
         for key in self.episode_sums.keys():
@@ -228,22 +305,65 @@ class LeggedRobot(BaseTask):
             self.rew_buf += rew
             self.episode_sums["termination"] += rew
 
-    def compute_observations(self):
-        """Computes observations"""
-
-        self.obs_buf = torch.cat(
+    def compute_latency_right_obs(self, env_ids):
+        self.latency_right_obs[env_ids] = torch.cat(
             (
-                # self.base_lin_vel * self.obs_scales.lin_vel,
-                self.contact_filt.float() * 2 - 1.0,
-                self.base_ang_vel * self.obs_scales.ang_vel,
-                self.projected_gravity,
-                self.commands[:, :3] * self.commands_scale,
-                (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
-                self.dof_vel * self.obs_scales.dof_vel,
-                self.actions,
+                self.base_ang_vel[env_ids] * self.obs_scales.ang_vel,
+                self.projected_gravity[env_ids],
+                (self.dof_pos[env_ids] - self.default_dof_pos)
+                * self.obs_scales.dof_pos,
+                self.dof_vel[env_ids] * self.obs_scales.dof_vel,
             ),
             dim=-1,
         )
+
+    def compute_latency_left_obs(self, env_ids):
+        self.latency_left_obs[env_ids] = torch.cat(
+            (
+                self.base_ang_vel[env_ids] * self.obs_scales.ang_vel,
+                self.projected_gravity[env_ids],
+                (self.dof_pos[env_ids] - self.default_dof_pos)
+                * self.obs_scales.dof_pos,
+                self.dof_vel[env_ids] * self.obs_scales.dof_vel,
+            ),
+            dim=-1,
+        )
+
+    def compute_observations(self):
+        """Computes observations"""
+
+        if self.cfg.domain_rand.randomize_obs_latency:
+            interal = self.latency_interal_range[0] + np.random.random() * (
+                self.latency_interal_range[1] - self.latency_interal_range[0]
+            )
+            interal_obs = (
+                interal * self.latency_left_obs + (1 - interal) * self.latency_right_obs
+            )
+            self.obs_buf = torch.cat(
+                (
+                    self.base_lin_vel * self.obs_scales.lin_vel,
+                    interal_obs[:, :6],
+                    self.commands[:, :3] * self.commands_scale,
+                    interal_obs[:, 6:],
+                    self.actions,
+                ),
+                dim=-1,
+            )
+        else:
+            self.obs_buf = torch.cat(
+                (
+                    self.base_lin_vel * self.obs_scales.lin_vel,
+                    # (self.contact_filt.float() * 2 - 1.0) * self.obs_scales.foot_contact,
+                    self.base_ang_vel * self.obs_scales.ang_vel,
+                    self.projected_gravity,
+                    self.commands[:, :3] * self.commands_scale,
+                    (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
+                    self.dof_vel * self.obs_scales.dof_vel,
+                    self.actions,
+                ),
+                dim=-1,
+            )
+
         # add perceptive inputs if not blind
         if self.cfg.env.privileged_obs:
             if self.cfg.terrain.measure_heights:
@@ -891,9 +1011,11 @@ class LeggedRobot(BaseTask):
         actor_root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
         dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
         net_contact_forces = self.gym.acquire_net_contact_force_tensor(self.sim)
+        rigid_body_state = self.gym.acquire_rigid_body_state_tensor(self.sim)
         self.gym.refresh_dof_state_tensor(self.sim)
         self.gym.refresh_actor_root_state_tensor(self.sim)
         self.gym.refresh_net_contact_force_tensor(self.sim)
+        self.gym.refresh_rigid_body_state_tensor(self.sim)
 
         # create some wrapper tensors for different slices
         self.root_states = gymtorch.wrap_tensor(actor_root_state)
@@ -993,6 +1115,37 @@ class LeggedRobot(BaseTask):
         # joint positions offsets and PD gains
         self.default_dof_pos = torch.zeros(
             self.num_dof, dtype=torch.float, device=self.device, requires_grad=False
+        )
+
+        self.rigid_body_states = gymtorch.wrap_tensor(rigid_body_state)
+        self.rigid_body_pos = self.rigid_body_states.view(
+            self.num_envs, self.num_bodies, 13
+        )[..., 0:3]
+        self.rigid_body_lin_vel = self.rigid_body_states.view(
+            self.num_envs, self.num_bodies, 13
+        )[..., 7:10]
+        # for latency
+        self.latency_actions = torch.zeros(
+            self.num_envs,
+            self.num_actions,
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
+        )
+        # base ang, ang vel, dof pos, dof vel, 3 + 3 + 12 + 12 in total;
+        self.latency_right_obs = torch.zeros(
+            self.num_envs,
+            30,
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
+        )
+        self.latency_left_obs = torch.zeros(
+            self.num_envs,
+            30,
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
         )
 
         print("init okay!!!")
@@ -1604,3 +1757,50 @@ class LeggedRobot(BaseTask):
         return (
             fly * 1.0 * (self.episode_length_buf * self.dt > 0.5)
         )  # ignore falling down when respawned
+
+    def _reward_clearance(self):
+        # foot_pos = self.rigid_body_pos[:, self.feet_indices,:]
+        #
+        # foot_pos -= self.root_states[:,:3].unsqueeze(1)
+        # foot_pos = torch.reshape(foot_pos,(self.num_envs * 4,-1))
+        # foot_pos_base = quat_rotate_inverse(self.base_quat.repeat(4, 1), foot_pos)
+        # foot_pos_base = torch.reshape(foot_pos_base,(self.num_envs,4,-1))
+        # foot_heights = foot_pos_base[:,:,2]
+
+        if self.cfg.terrain.mesh_type == "plane":
+            foot_heights = self.rigid_body_pos[:, self.feet_indices, 2]
+        else:
+            points = self.rigid_body_pos[:, self.feet_indices, :]
+
+            # measure ground height under the foot
+            points += self.terrain.cfg.border_size
+            points = (points / self.terrain.cfg.horizontal_scale).long()
+            px = points[:, :, 0].view(-1)
+            py = points[:, :, 1].view(-1)
+            px = torch.clip(px, 0, self.height_samples.shape[0] - 2)
+            py = torch.clip(py, 0, self.height_samples.shape[1] - 2)
+
+            heights1 = self.height_samples[px, py]
+            heights2 = self.height_samples[px + 1, py]
+            heights3 = self.height_samples[px, py + 1]
+            heights = torch.min(heights1, heights2)
+            heights = torch.min(heights, heights3)
+
+            ground_heights = (
+                torch.reshape(heights, (self.num_envs, -1))
+                * self.terrain.cfg.vertical_scale
+            )
+            foot_heights = self.rigid_body_pos[:, self.feet_indices, 2] - ground_heights
+
+        foot_lateral_vel = torch.norm(
+            self.rigid_body_lin_vel[:, self.feet_indices, :2], dim=-1
+        )
+        return torch.sum(
+            foot_lateral_vel
+            * torch.maximum(
+                -foot_heights + self.cfg.rewards.foot_height_target,
+                torch.zeros_like(foot_heights),
+            ),
+            dim=-1,
+        )
+        # return torch.sum(foot_lateral_vel * torch.square(foot_heights - self.cfg.rewards.foot_height_target), dim = -1)

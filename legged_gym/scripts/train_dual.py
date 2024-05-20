@@ -36,6 +36,7 @@ import isaacgym
 from legged_gym.envs import *
 from legged_gym.utils import get_args, task_registry
 import torch
+import json
 
 
 def train(args):
@@ -49,11 +50,47 @@ def train(args):
     ppo_runner, train_cfg = task_registry.make_dual_runner(
         env=env, name=args.task, args=args, train_cfg=train_cfg
     )
+    # log_root = os.path.join(
+    #     LEGGED_GYM_ROOT_DIR, "logs", train_cfg.runner.experiment_name
+    # )
+
+    # log_dir = os.path.join(
+    #     log_root,
+    #     "dual_" + train_cfg.policy.net_type + "_real",
+    #     "y="
+    #     + str(train_cfg.policy.num_latent)
+    #     + "_l="
+    #     + str(train_cfg.policy.history_lengths[1])
+    #     + "_"
+    #     + str(train_cfg.runner.run_name)
+    #     + "_"
+    #     + str(datetime.now().strftime("%b%d_%H-%M-%S")),
+    # )
+    # os.makedirs(log_dir, exist_ok=True)
+    # dump_dict_to_json(
+    #     vars(train_cfg),
+    #     os.path.join(
+    #         log_dir,
+    #         "train_cfg.json",
+    #     ),
+    # )
+    # dump_dict_to_json(
+    #     vars(env_cfg),
+    #     os.path.join(
+    #         log_dir,
+    #         "env_cfg.json",
+    #     ),
+    # )
 
     ppo_runner.learn(
         num_learning_iterations=train_cfg.runner.max_iterations,
         init_at_random_ep_len=True,
     )
+
+
+def dump_dict_to_json(dict_obj, file_path):
+    with open(file_path, "w") as json_file:
+        json.dump(dict_obj, json_file, indent=4)
 
 
 if __name__ == "__main__":

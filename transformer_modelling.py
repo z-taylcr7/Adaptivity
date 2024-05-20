@@ -162,11 +162,11 @@ class DecisionTransformer(nn.Module):
         # that is, for each timestep (t) we have 3 output embeddings from the transformer,
         # each conditioned on all previous timesteps plus
         # the 3 input variables at that timestep (r_t, s_t, a_t) in sequence.
-        h = h.reshape(B, T, 2, self.h_dim).permute(0, 2, 1, 3)
+        h = h.reshape(B, T, 2, self.h_dim).permute(0, 2, 1, 3)  # B,2,T,h
 
         # get predictions
         # state_preds = self.predict_state(h[:, 1])  # predict next state given r, s, a
-        action_preds = self.predict_action(h[:, 0])  # predict action given r, s
+        action_preds = self.predict_action(h[:, 0])  # predict action given r, s # B,T,a
         # print(action_preds.shape)
 
         return action_preds[:, -1]

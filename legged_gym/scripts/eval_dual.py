@@ -103,7 +103,7 @@ def play(args):
     train_cfg.runner.load_run = args.load_run
     train_cfg.runner.policy_class_name = "DualActorCritic"
     train_cfg.runner_class_name = "DualPolicyRunner"
-    train_cfg.policy.net_type = train_cfg.runner.load_run.split("/")[0].split("_")[-1]
+    train_cfg.policy.net_type = train_cfg.runner.load_run.split("/")[0].split("_")[1]
     # train_cfg.policy.net_type = "transformer"
     if train_cfg.policy.net_type == "teacher":
         env_cfg.terrain.measure_heights = True

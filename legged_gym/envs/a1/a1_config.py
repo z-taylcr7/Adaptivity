@@ -50,7 +50,7 @@ class A1RoughCfg(LeggedRobotCfg):
         }
 
     class env(LeggedRobotCfg.env):
-        num_observations = 49
+        num_observations = 48
 
     class control(LeggedRobotCfg.control):
         # PD Drive parameters:
@@ -72,14 +72,14 @@ class A1RoughCfg(LeggedRobotCfg):
 
     class noise(LeggedRobotCfg.noise):
         class noise_scales(LeggedRobotCfg.noise.noise_scales):
-            # lin_vel = 0.25
+            lin_vel = 0.15
             pass
 
     class domain_rand(LeggedRobotCfg.domain_rand):
         randomize_friction = True
-        friction_range = [0.25, 1.75]
+        friction_range = [0.05, 1.75]
         randomize_base_mass = True
-        added_mass_range = [0, 2.5]
+        added_mass_range = [-1.0, 5.0]
         randomize_dof_bias = True
         max_dof_bias = 0.08
         randomize_timer_minus = (
@@ -94,7 +94,7 @@ class A1RoughCfg(LeggedRobotCfg):
         init_yaw_range = [-3.14, 3.14]
         randomize_roll = False
         randomize_pitch = False
-        randomize_xy = False
+        randomize_xy = True
         init_x_range = [-0.5, 0.5]
         init_y_range = [-0.5, 0.5]
         randomize_velo = True
@@ -106,7 +106,13 @@ class A1RoughCfg(LeggedRobotCfg):
         init_dof_factor = [0.5, 1.5]
         stand_bias3 = [0.0, 0.0, 0.0]
 
-        erfi = True
+        randomize_motor_strength = False  # for a1 flat, enabling this = can not train
+        motor_strength_range = [0.9, 1.1]
+        randomize_action_latency = True
+        randomize_obs_latency = True
+        latency_range = [0.006, 0.006]
+
+        erfi = False
         erfi_torq_lim = 7.0 / 9  # per level, curriculum
 
     class rewards(LeggedRobotCfg.rewards):
@@ -118,8 +124,13 @@ class A1RoughCfg(LeggedRobotCfg):
             torques = -0.0002
             fly = -10.0
             # base_height = -0.5
-            # torque_limits = -0.05
+            torque_limits = -0.02
             termination = -10.0
+            orientation = -2.0
+            collision = -10.0
+            feet_collision = -10.0
+            clearance = -0.5
+
             #     # reach_pos_target_soft = 60.0
             #     # reach_pos_target_tight = 60.0
             #     # reach_heading_target = 30.0
@@ -136,11 +147,8 @@ class A1RoughCfg(LeggedRobotCfg):
             #     lin_vel_z = -2.0
             #     ang_vel_xy = -0.05
             #     dof_acc = -2.0e-7
-            #     collision = -100.0
-            #     feet_collision = -100.0
             #     action_rate = -0.01
             #     stand_still = -10.0
-            #     orientation = -20.0
 
         #     # nomove = -20.0
 
@@ -149,7 +157,8 @@ class A1RoughCfg(LeggedRobotCfg):
         soft_dof_vel_limit = 0.9
         soft_torque_limit = 0.8
         soft_dof_pos_limit = 0.95
-        base_height_target = 0.25
+        base_height_target = 0.25  # 0.25
+        foot_height_target = 0.15
         # heading_target_sigma = 1.0
         max_contact_force = 100.0
 
@@ -162,4 +171,4 @@ class A1RoughCfgPPO(LeggedRobotCfgPPO):
         run_name = ""
         experiment_name = "rough_a1"
         max_iterations = 20000
-        save_interval = 2000
+        save_interval = 500

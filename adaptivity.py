@@ -106,7 +106,7 @@ if __name__ == "__main__":
     if args.path is not None:
         for path in args.path:
             plot_adaptivity(path)
-    plt.legend(loc="lower left")
+    plt.legend(loc="lower left", bbox_to_anchor=(0.1, 0.1))
     plt.show()
     plt.title("Tracking errors of different adaptivity strategies: History Designs")
     plt.savefig("radar_adaptivity.png")
