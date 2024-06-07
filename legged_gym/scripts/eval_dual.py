@@ -75,27 +75,39 @@ def play(args):
     env_cfg.env.num_envs = (
         min(env_cfg.env.num_envs, env_cfg.eval.envs_per_scale * len(labels))
         if env_cfg.eval.eval_mode
-        else 20
+        else 10
     )
 
     env_cfg.terrain.num_rows = 6
     env_cfg.terrain.num_cols = 8
     env_cfg.terrain.curriculum = False
     if not env_cfg.eval.eval_mode:
-        env_cfg.commands.ranges.lin_vel_x = [0.3, 1.5]
+        env_cfg.commands.ranges.lin_vel_x = [0.5, 0.5]
         env_cfg.commands.ranges.lin_vel_y = [0.0, 0.0]
         env_cfg.commands.ranges.ang_vel_yaw = [0.0, 0.0]
         env_cfg.commands.ranges.heading = [0.0, 0.0]
         env_cfg.terrain.num_rows = 3
-        env_cfg.terrain.num_cols = 3
-        # env_cfg.domain_rand.restitution_range = [0.0, 0.0]
-        # env_cfg.domain_rand.com_pos_range = [0.0, 0.0]
-        # env_cfg.domain_rand.motor_strength_range = [1.0, 1.0]
-        # env_cfg.domain_rand.link_mass_range = [1.0, 1.0]
+        env_cfg.terrain.num_cols = 4
+        env_cfg.domain_rand.added_mass_range = [0.0, 0.0]
+        env_cfg.domain_rand.friction_range = [0.5, 0.5]
+        env_cfg.domain_rand.randomize_dof_bias = False
+        env_cfg.domain_rand.randomize_yaw = False
+        env_cfg.domain_rand.randomize_roll = False
+        env_cfg.domain_rand.randomize_pitch = False
+        env_cfg.domain_rand.randomize_xy = False
+        env_cfg.domain_rand.erfi = False
+        env_cfg.domain_rand.randomize_obs_latency = False
+        env_cfg.domain_rand.randomize_action_latency = False
+        env_cfg.domain_rand.randomize_motor_strength = False
+        env_cfg.domain_rand.randomize_init_dof = False
+        env_cfg.domain_rand.randomize_velo = False
+        env_cfg.domain_rand.push_robots = False
+        env_cfg.domain_rand.randomize_kp_kd = False
+        env_cfg.terrain.curriculum = True
 
     # if terrain_idx == None:
-    # env_cfg.terrain.terrain_proportions = [0.2, 0.4, 0.2, 0.2, 0.0]
-    env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
+    env_cfg.terrain.terrain_proportions = [0.2, 0.2, 0.4, 0.1, 0.1]
+    # env_cfg.terrain.terrain_proportions = [0.0, 1.0, 0.0, 0.0, 0.0]
     # else:
     #     env_cfg.terrain.terrain_proportions = [0, 0, 0, 0, 0, 0]
     #     env_cfg.terrain.terrain_proportions[terrain_idx] = 1
@@ -104,7 +116,7 @@ def play(args):
     train_cfg.runner.policy_class_name = "DualActorCritic"
     train_cfg.runner_class_name = "DualPolicyRunner"
     train_cfg.policy.net_type = train_cfg.runner.load_run.split("/")[0].split("_")[1]
-    # train_cfg.policy.net_type = "transformer"
+    train_cfg.policy.net_type = "discrete_transformer"
     if train_cfg.policy.net_type == "teacher":
         env_cfg.terrain.measure_heights = True
         env_cfg.env.privileged_obs = True
@@ -142,7 +154,7 @@ def play(args):
             env=env, name=args.task, args=args, train_cfg=train_cfg
         )
 
-    checkpoint = -1
+    checkpoint = args.checkpoint if args.checkpoint != None else -1
     log_root = os.path.join(
         LEGGED_GYM_ROOT_DIR, "logs", train_cfg.runner.experiment_name
     )
@@ -174,7 +186,7 @@ def play(args):
     stop_rew_log = (
         env.max_episode_length + 1
     )  # number of steps before print average episode rewards
-    eval_laps = 3
+    eval_laps = 2
     camera_position = np.array(env_cfg.viewer.pos, dtype=np.float64)
     camera_vel = np.array([1.0, 1.0, 0.0])
     camera_direction = np.array(env_cfg.viewer.lookat) - np.array(env_cfg.viewer.pos)

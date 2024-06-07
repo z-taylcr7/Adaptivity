@@ -44,7 +44,7 @@ class LeggedRobotCfg(BaseConfig):
         episode_length_s = 20  # episode length in seconds
 
     class terrain:
-        mesh_type = "plane"  # "heightfield" # none, plane, heightfield or trimesh
+        mesh_type = "trimesh"  # "heightfield" # none, plane, heightfield or trimesh
         horizontal_scale = 0.1  # [m]
         vertical_scale = 0.005  # [m]
         border_size = 25  # [m]
@@ -76,14 +76,14 @@ class LeggedRobotCfg(BaseConfig):
         measured_points_y = [-0.5, -0.4, -0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
         selected = False  # select a unique terrain type and pass all arguments
         terrain_kwargs = None  # Dict of arguments for selected terrain
-        max_init_terrain_level = 5  # starting curriculum state
+        max_init_terrain_level = 0  # starting curriculum state
         terrain_length = 8.0
         terrain_width = 8.0
         num_rows = 10  # number of terrain rows (levels)
         num_cols = 20  # number of terrain cols (types)
         # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete]
         # terrain_proportions = [0.1, 0.1, 0.35, 0.25, 0.2]
-        terrain_proportions = [0.3, 0.4, 0.1, 0.1, 1.1]
+        terrain_proportions = [0.2, 0.1, 0.0, 0.0, 0.0, 0.7]
         # trimesh only:
         slope_treshold = (
             0.75  # slopes above this threshold will be corrected to vertical surfaces
@@ -97,7 +97,7 @@ class LeggedRobotCfg(BaseConfig):
         heading_command = True  # if true: compute ang vel command from heading error
 
         class ranges:
-            lin_vel_x = [-1.0, 3.0]  # min max [m/s]
+            lin_vel_x = [-0.5, 3.0]  # min max [m/s]
             lin_vel_y = [-1.0, 1.0]  # min max [m/s]
             ang_vel_yaw = [-1, 1]  # min max [rad/s]
             heading = [-3.14, 3.14]
@@ -107,10 +107,10 @@ class LeggedRobotCfg(BaseConfig):
             # ang_vel_yaw = [-0.2, 0.2]  # min max [rad/s]
             # heading = [-3.14 / 4, 3.14 / 4]
 
-            # lin_vel_x = [-0.0, 1.0]  # min max [m/s]
+            # lin_vel_x = [-1.0, 1.0]  # min max [m/s]
             # lin_vel_y = [-0.1, 0.1]  # min max [m/s]
             # ang_vel_yaw = [-1, 1]  # min max [rad/s]
-            # heading = [0, 0]
+            # heading = [-3.14 / 4, 3.14 / 4]
 
     class init_state:
         pos = [0.0, 0.0, 1.0]  # x,y,z [m]
@@ -195,7 +195,7 @@ class LeggedRobotCfg(BaseConfig):
         motor_strength_range = [0.9, 1.1]
         randomize_action_latency = False
         randomize_obs_latency = False
-        latency_range = [0.00, 0.02]
+        latency_range = [0.00, 0.00]
 
     class rewards:
         class scales:
@@ -280,13 +280,13 @@ class LeggedRobotCfg(BaseConfig):
     class eval:
         eval_mode = False
         # envs_per_scale = 4
-        envs_per_scale = 4  # can be modified as you want
+        envs_per_scale = 2  # can be modified as you want
 
         # 1) command vel_x overall test [0:12]
         command_scales_vel_x = [
-            -1.5,
-            -1.0,
             -0.5,
+            -0.3,
+            -0.1,
             0.1,
             0.5,
             1.0,
@@ -324,10 +324,10 @@ class LeggedRobotCfgPPO(BaseConfig):
         # rnn_type = 'lstm'
         # rnn_hidden_size = 512
         # rnn_num_layers = 1
-        net_type = "transformer"  # can be mlp, lstm, gru, cnn, transformer
+        net_type = "discrete_transformer"  # can be mlp, lstm, gru, cnn, transformer
         transformer_direct_act = True  # add an fc for transformer or not. Activated if net_type="transformer"
         num_latent = 12  # if net_type="transformer" and transformer_direct_act=True, set to number of actions.
-        history_lengths = [1, 66]
+        history_lengths = [1, 4 * 66]
 
     class algorithm:
         # training params

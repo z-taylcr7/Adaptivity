@@ -44,6 +44,7 @@ import isaacgym
 from legged_gym.envs import *
 from legged_gym.utils import get_args  # , task_registry
 import torch
+import shutil
 
 
 def train(args):
@@ -53,7 +54,7 @@ def train(args):
 
     train_cfg.runner.run_name = "student"
     train_cfg.runner.resume = True
-    train_cfg.runner.load_run = "rma_teacher/rma_teacher_v=3.0"
+    train_cfg.runner.load_run = "rma_teacher/rma_real_teacher_v=3.0"
     train_cfg.runner.checkpoint = -1
     env_cfg.terrain.measure_heights = True
     env_cfg.env.privileged_obs = True
@@ -65,6 +66,17 @@ def train(args):
     ppo_runner, train_cfg = task_registry.make_student_runner(
         env=env, name=args.task, args=args, train_cfg=train_cfg
     )
+
+    if args.logconfig:
+        os.makedirs(train_cfg.log_dir, exist_ok=True)
+        shutil.copyfile(
+            os.path.join(LEGGED_GYM_ENVS_DIR, "a1", "a1_config.py"),
+            os.path.join(train_cfg.log_dir, "a1_config.py"),
+        )
+        shutil.copyfile(
+            os.path.join(LEGGED_GYM_ENVS_DIR, "base", "legged_robot_config.py"),
+            os.path.join(train_cfg.log_dir, "legged_robot_config.py"),
+        )
     ppo_runner.learn(
         num_learning_iterations=train_cfg.runner.max_iterations,
         init_at_random_ep_len=True,

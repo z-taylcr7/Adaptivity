@@ -163,7 +163,7 @@ class TaskRegistry:
             )
             log_dir = os.path.join(
                 log_root,
-                "dual_" + train_cfg.policy.net_type +"_real",
+                "dual_" + train_cfg.policy.net_type + "_real_world",
                 "y="
                 + str(train_cfg.policy.num_latent)
                 + "_l="
@@ -182,7 +182,7 @@ class TaskRegistry:
                 + "_"
                 + train_cfg.runner.run_name,
             )
-
+        train_cfg.log_dir = log_dir
         train_cfg_dict = class_to_dict(train_cfg)
         runner = DualPolicyRunner(env, train_cfg_dict, log_dir, device=args.rl_device)
         # save resume path before creating a new log_dir
@@ -334,7 +334,7 @@ class TaskRegistry:
                 + "_"
                 + train_cfg.runner.run_name,
             )
-
+        train_cfg.log_dir = log_dir
         train_cfg_dict = class_to_dict(train_cfg)
         runner = TeacherPolicyRunner(
             env, train_cfg_dict, log_dir, device=args.rl_device
@@ -416,7 +416,7 @@ class TaskRegistry:
                 + "_"
                 + train_cfg.runner.run_name,
             )
-
+        train_cfg.log_dir = log_dir
         train_cfg_dict = class_to_dict(train_cfg)
         if is_inference:
             runner = StudentPolicyInferenceRunner(

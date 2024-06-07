@@ -36,6 +36,7 @@ import isaacgym
 from legged_gym.envs import *
 from legged_gym.utils import get_args, task_registry
 import torch
+import shutil
 
 
 def train(args):
@@ -54,6 +55,16 @@ def train(args):
     )
     # train_cfg.policy.net_type = "rma"
 
+    if args.logconfig:
+        os.makedirs(train_cfg.log_dir, exist_ok=True)
+        shutil.copyfile(
+            os.path.join(LEGGED_GYM_ENVS_DIR, "a1", "a1_config.py"),
+            os.path.join(train_cfg.log_dir, "a1_config.py"),
+        )
+        shutil.copyfile(
+            os.path.join(LEGGED_GYM_ENVS_DIR, "base", "legged_robot_config.py"),
+            os.path.join(train_cfg.log_dir, "legged_robot_config.py"),
+        )
     ppo_runner.learn(
         num_learning_iterations=train_cfg.runner.max_iterations,
         init_at_random_ep_len=True,

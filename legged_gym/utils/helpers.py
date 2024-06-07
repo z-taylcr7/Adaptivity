@@ -230,6 +230,12 @@ def get_args():
             "default": "eval",
             "help": "Type of evaluation (eval, test). Overrides config file if provided. -1 for random eval.[<int>,<int>,<int>,<bool>,<bool>], representing ter, fri, mass, noise, push",
         },
+        {
+            "name": "--logconfig",
+            "action": "store_true",
+            "default": False,
+            "help": "Force display off at all times",
+        },
     ]
     # parse arguments
     args = gymutil.parse_arguments(

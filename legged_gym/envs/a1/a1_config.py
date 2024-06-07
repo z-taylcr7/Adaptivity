@@ -50,7 +50,7 @@ class A1RoughCfg(LeggedRobotCfg):
         }
 
     class env(LeggedRobotCfg.env):
-        num_observations = 48
+        num_observations = 49
 
     class control(LeggedRobotCfg.control):
         # PD Drive parameters:
@@ -62,38 +62,41 @@ class A1RoughCfg(LeggedRobotCfg):
         # decimation: Number of control action updates @ sim DT per policy DT
         decimation = 4
 
+    class terrain(LeggedRobotCfg.terrain):
+        mesh_type = "plane"
+        pass
+
     class asset(LeggedRobotCfg.asset):
         file = "{LEGGED_GYM_ROOT_DIR}/resources/robots/a1/urdf/a1.urdf"
         name = "a1"
         foot_name = "foot"
         penalize_contacts_on = ["thigh", "calf"]
         terminate_after_contacts_on = ["base"]
-        self_collisions = 1  # 1 to disable, 0 to enable...bitwise filter
+        self_collisions = 0  # 1 to disable, 0 to enable...bitwise filter
 
     class noise(LeggedRobotCfg.noise):
         class noise_scales(LeggedRobotCfg.noise.noise_scales):
-            lin_vel = 0.15
+            # lin_vel = 0.2
             pass
 
     class domain_rand(LeggedRobotCfg.domain_rand):
         randomize_friction = True
         friction_range = [0.05, 1.75]
         randomize_base_mass = True
-        added_mass_range = [-1.0, 5.0]
+        added_mass_range = [-2.0, 5.0]
         randomize_dof_bias = True
         max_dof_bias = 0.08
-        randomize_timer_minus = (
-            2.0  # timer_left is initialized with randomization: U(T-this, T)
-        )
 
         push_robots = True
-        push_interval_s = 15
-        max_push_vel_xy = 1.0  # not used
+        push_interval_s = 2.5
+        max_push_vel_xy = 0  # not used
 
         randomize_yaw = True
         init_yaw_range = [-3.14, 3.14]
         randomize_roll = False
+        init_roll_range = [-3.14, 3.14]
         randomize_pitch = False
+        init_pitch_range = [-3.14, 3.14]
         randomize_xy = True
         init_x_range = [-0.5, 0.5]
         init_y_range = [-0.5, 0.5]
@@ -106,13 +109,13 @@ class A1RoughCfg(LeggedRobotCfg):
         init_dof_factor = [0.5, 1.5]
         stand_bias3 = [0.0, 0.0, 0.0]
 
-        randomize_motor_strength = False  # for a1 flat, enabling this = can not train
+        randomize_motor_strength = True  # for a1 flat, enabling this = can not train
         motor_strength_range = [0.9, 1.1]
         randomize_action_latency = True
         randomize_obs_latency = True
-        latency_range = [0.006, 0.006]
+        latency_range = [0.005, 0.007]
 
-        erfi = False
+        erfi = True
         erfi_torq_lim = 7.0 / 9  # per level, curriculum
 
     class rewards(LeggedRobotCfg.rewards):
@@ -120,16 +123,21 @@ class A1RoughCfg(LeggedRobotCfg):
         class scales(LeggedRobotCfg.rewards.scales):
             # termination = -2.0
             # torque_limits = -1.0
+            dof_vel = -0.00005
             dof_pos_limits = -10.0
-            torques = -0.0002
-            fly = -10.0
-            # base_height = -0.5
-            torque_limits = -0.02
+            dof_vel_limits = -5.0  # <-0.08
+            torques = -0.00005
+            fly = -2.0
+            # base_height = -0.0
+            torque_limits = -0.5
             termination = -10.0
             orientation = -2.0
             collision = -10.0
             feet_collision = -10.0
-            clearance = -0.5
+            # clearance = -0.02
+            # slippage = (
+            #     -0.002
+            # )  # should be less than 0.2. Performance drops when it learns to improve slippage reward
 
             #     # reach_pos_target_soft = 60.0
             #     # reach_pos_target_tight = 60.0
@@ -143,16 +151,15 @@ class A1RoughCfg(LeggedRobotCfg):
 
             #     dof_pos_limits = -20.0
 
-            #     dof_vel_limits = -20.0
             #     lin_vel_z = -2.0
             #     ang_vel_xy = -0.05
-            #     dof_acc = -2.0e-7
+            dof_acc = -2.5e-7
             #     action_rate = -0.01
-            #     stand_still = -10.0
+            stand_still = -1.0
 
         #     # nomove = -20.0
 
-        # only_positive_rewards = False
+        only_positive_rewards = False
 
         soft_dof_vel_limit = 0.9
         soft_torque_limit = 0.8

@@ -158,7 +158,7 @@ class DualHistEncoder(nn.Module):
             if not self.direct_act:
                 self.transformer_fc = nn.Linear(self.action_dim, y_dim)
         elif self.net_type == "discrete_transformer":
-            self.discrete_array = [0, 1, 4, 8, 16, 32, 64]
+            self.discrete_array = np.arange(0, 4 * 66, 4)
             self.discrete_array = torch.as_tensor(
                 self.discrete_array, dtype=torch.long, device=device
             )

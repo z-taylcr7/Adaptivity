@@ -341,7 +341,9 @@ class LeggedRobot(BaseTask):
             )
             self.obs_buf = torch.cat(
                 (
-                    self.base_lin_vel * self.obs_scales.lin_vel,
+                    # self.base_lin_vel * self.obs_scales.lin_vel,
+                    (self.contact_filt.float() * 2 - 1.0)
+                    * self.obs_scales.foot_contact,
                     interal_obs[:, :6],
                     self.commands[:, :3] * self.commands_scale,
                     interal_obs[:, 6:],
@@ -352,8 +354,9 @@ class LeggedRobot(BaseTask):
         else:
             self.obs_buf = torch.cat(
                 (
-                    self.base_lin_vel * self.obs_scales.lin_vel,
-                    # (self.contact_filt.float() * 2 - 1.0) * self.obs_scales.foot_contact,
+                    # self.base_lin_vel * self.obs_scales.lin_vel,
+                    (self.contact_filt.float() * 2 - 1.0)
+                    * self.obs_scales.foot_contact,
                     self.base_ang_vel * self.obs_scales.ang_vel,
                     self.projected_gravity,
                     self.commands[:, :3] * self.commands_scale,
@@ -764,17 +767,30 @@ class LeggedRobot(BaseTask):
             raise NameError(f"Unknown controller type: {control_type}")
 
         if self.cfg.domain_rand.erfi:
-            torques = (
-                torques
-                + (self.erfi_rnd < 0.5)
-                * (self.erfi_rnd * 4 - 1.0)
-                * self.cfg.domain_rand.erfi_torq_lim
-                * self.terrain_levels.float().unsqueeze(1)
-                + (self.erfi_rnd > 0.5)
-                * (torch.rand_like(torques) * 2 - 1.0)
-                * self.cfg.domain_rand.erfi_torq_lim
-                * self.terrain_levels.float().unsqueeze(1)
-            )
+            if self.cfg.terrain.mesh_type == "plane":
+                torques = (
+                    torques
+                    + (self.erfi_rnd < 0.5)
+                    * (self.erfi_rnd * 4 - 1.0)
+                    * self.cfg.domain_rand.erfi_torq_lim
+                    # * self.terrain_levels.float().unsqueeze(1)
+                    + (self.erfi_rnd > 0.5)
+                    * (torch.rand_like(torques) * 2 - 1.0)
+                    * self.cfg.domain_rand.erfi_torq_lim
+                    # * self.terrain_levels.float().unsqueeze(1)
+                )
+            else:
+                torques = (
+                    torques
+                    + (self.erfi_rnd < 0.5)
+                    * (self.erfi_rnd * 4 - 1.0)
+                    * self.cfg.domain_rand.erfi_torq_lim
+                    * self.terrain_levels.float().unsqueeze(1)
+                    + (self.erfi_rnd > 0.5)
+                    * (torch.rand_like(torques) * 2 - 1.0)
+                    * self.cfg.domain_rand.erfi_torq_lim
+                    * self.terrain_levels.float().unsqueeze(1)
+                )
 
         return torch.clip(torques, -self.torque_limits, self.torque_limits)
 
@@ -988,13 +1004,21 @@ class LeggedRobot(BaseTask):
         self.add_noise = self.cfg.noise.add_noise
         noise_scales = self.cfg.noise.noise_scales
         noise_level = self.cfg.noise.noise_level
-        noise_vec[:3] = noise_scales.lin_vel * noise_level * self.obs_scales.lin_vel
-        noise_vec[3:6] = noise_scales.ang_vel * noise_level * self.obs_scales.ang_vel
-        noise_vec[6:9] = noise_scales.gravity * noise_level
-        noise_vec[9:12] = 0.0  # commands
-        noise_vec[12:24] = noise_scales.dof_pos * noise_level * self.obs_scales.dof_pos
-        noise_vec[24:36] = noise_scales.dof_vel * noise_level * self.obs_scales.dof_vel
-        noise_vec[36:48] = 0.0  # previous actions
+        # noise_vec[:3] = noise_scales.lin_vel * noise_level * self.obs_scales.lin_vel
+        # noise_vec[3:6] = noise_scales.ang_vel * noise_level * self.obs_scales.ang_vel
+        # noise_vec[6:9] = noise_scales.gravity * noise_level
+        # noise_vec[9:12] = 0.0  # commands
+        # noise_vec[12:24] = noise_scales.dof_pos * noise_level * self.obs_scales.dof_pos
+        # noise_vec[24:36] = noise_scales.dof_vel * noise_level * self.obs_scales.dof_vel
+        # noise_vec[36:48] = 0.0  # previous actions
+
+        noise_vec[:4] = 0.0
+        noise_vec[4:7] = noise_scales.ang_vel * noise_level * self.obs_scales.ang_vel
+        noise_vec[7:10] = noise_scales.gravity * noise_level
+        noise_vec[10:13] = 0.0  # commands
+        noise_vec[13:25] = noise_scales.dof_pos * noise_level * self.obs_scales.dof_pos
+        noise_vec[25:37] = noise_scales.dof_vel * noise_level * self.obs_scales.dof_vel
+        noise_vec[37:49] = 0.0  # previous actions
         if self.cfg.terrain.measure_heights:
             noise_vec[48:235] = (
                 noise_scales.height_measurements
@@ -1804,3 +1828,11 @@ class LeggedRobot(BaseTask):
             dim=-1,
         )
         # return torch.sum(foot_lateral_vel * torch.square(foot_heights - self.cfg.rewards.foot_height_target), dim = -1)
+
+    def _reward_slippage(self):
+        foot_vel = self.rigid_body_lin_vel[:, self.feet_indices]
+        return torch.sum(
+            torch.norm(foot_vel, dim=-1)
+            * (torch.norm(self.contact_forces[:, self.feet_indices, :], dim=-1) > 1.0),
+            dim=1,
+        )

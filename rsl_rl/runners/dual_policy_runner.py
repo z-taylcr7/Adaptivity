@@ -246,6 +246,26 @@ class DualPolicyRunner:
                     #         self.cur_timesteps[env_id] = 0
                     #     else:
                     #         self.cur_timesteps[env_id] += 1
+                    # if self.encoder.net_type == "discrete_transformer":
+                    #     self.trajectory_history[env_ids] = 0
+                    #     self.cur_timesteps[env_ids] = 0
+                    #     take = self.cur_timesteps[:, -1] % 4 == torch.zeros(self.env.num_envs, device=self.device)
+                    #     # takes
+                    #     self.trajectory_history = torch.concat(
+                    #         (
+                    #             self.trajectory_history[:, 1:],
+                    #             obs[:, :obs_dim].unsqueeze(1),
+                    #         ),
+                    #         dim=1,
+                    #     )
+
+                    #     self.cur_timesteps = torch.concat(
+                    #         (
+                    #             self.cur_timesteps[:, 1:],
+                    #             (self.cur_timesteps[:, -1] + 1).unsqueeze(1),
+                    #         ),
+                    #         dim=1,
+                    #     )
 
                     self.trajectory_history[env_ids] = 0
                     self.trajectory_history = torch.concat(

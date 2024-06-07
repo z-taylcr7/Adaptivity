@@ -61,6 +61,9 @@ def play(args):
     # override some parameters for testing
     envs_per_label = env_cfg.eval.envs_per_scale
     labels = []
+    # for i, v in enumerate(env_cfg.eval.command_scales_vel_x):
+    #     env_cfg.eval.command_scales_vel_x[i] /= 2.0
+    env_cfg.eval.command_scales_vel_y = [-0.3, 0, 0.3]
     for vel_x in env_cfg.eval.command_scales_vel_x:
         labels.append(f"cmd_{vel_x}")
     for vel_y in env_cfg.eval.command_scales_vel_y:
@@ -93,11 +96,19 @@ def play(args):
     train_cfg.runner.load_run = args.load_run
     train_cfg.runner.policy_class_name = "StudentActorCritic"
     train_cfg.runner_class_name = "StudentPolicyRunner"
-    # train_cfg.policy.net_type = train_cfg.runner.load_run.split("/")[0].split("_")[-1]
+    train_cfg.policy.net_type = train_cfg.runner.load_run.split("/")[0].split("_")[-1]
     if train_cfg.policy.net_type == "teacher":
+        train_cfg.runner.policy_class_name = "TeacherActorCritic"
+        train_cfg.runner_class_name = "TeacherPolicyRunner"
         env_cfg.terrain.measure_heights = True
         env_cfg.env.privileged_obs = True
-        env_cfg.env.num_observations = 251
+        env_cfg.env.num_observations = (
+            env_cfg.env.num_observations + env_cfg.env.privileged_dim
+        )
+    else:
+        train_cfg.policy.net_type = train_cfg.runner.load_run.split("/")[1].split("_")[
+            2
+        ]
     train_cfg.policy.history_lengths = [
         1,
         66,
@@ -164,20 +175,21 @@ def play(args):
     obs_dim = env_cfg.env.num_observations
     trajectory_history = torch.zeros(
         size=(env_cfg.env.num_envs, history_length, obs_dim),
-        device=encoder.device,
+        device=env.device,
     )
     print("obs device:", obs.device)
     print("trajectory device:", trajectory_history.device)
     d_obs = obs.detach()
-    c_obs = d_obs.to(encoder.device)
+    c_obs = d_obs.to(env.device)
     print(c_obs.device)
     trajectory_history = torch.concat(
         (trajectory_history[:, 1:], c_obs[:, :obs_dim].unsqueeze(1)),
         dim=1,
     )
-    encoder = encoder.to(encoder.device)
+    encoder = encoder.to(env.device)
+    encoder.net_type = "rma"
     cur_timesteps = torch.zeros(
-        (env_cfg.env.num_envs, history_length), dtype=torch.int32, device=encoder.device
+        (env_cfg.env.num_envs, history_length), dtype=torch.int32, device=env.device
     )
     for i in range(eval_laps * int(env.max_episode_length)):
         start = time.time()
@@ -185,10 +197,10 @@ def play(args):
             if train_cfg.policy.net_type == "teacher":
                 concat_obs = obs
             else:
-                if "transformer" in encoder.net_type:
-                    latent = encoder(trajectory_history, cur_timesteps)
-                else:
-                    latent = encoder(trajectory_history)
+                # if "transformer" in encoder.net_type:
+                latent = encoder(trajectory_history, cur_timesteps)
+                # else:
+                #     latent = encoder(trajectory_history)
 
                 if train_cfg.policy.history_lengths[0] > 0:
                     concat_obs = torch.concat(
@@ -209,17 +221,17 @@ def play(args):
         obs, _, rews, dones, infos = env.step(actions.detach())
         env_ids = dones.nonzero(as_tuple=False).flatten()
         trajectory_history[env_ids] = 0
-        if "transformer" in encoder.net_type:
-            cur_timesteps[env_ids] = 0
-            cur_timesteps = torch.concat(
-                (
-                    cur_timesteps[:, 1:],
-                    (cur_timesteps[:, -1] + 1).unsqueeze(1),
-                ),
-                dim=1,
-            )
+        # if "transformer" in encoder.net_type:
+        cur_timesteps[env_ids] = 0
+        cur_timesteps = torch.concat(
+            (
+                cur_timesteps[:, 1:],
+                (cur_timesteps[:, -1] + 1).unsqueeze(1),
+            ),
+            dim=1,
+        )
         d_obs = obs.detach()
-        c_obs = d_obs.to(encoder.device)
+        c_obs = d_obs.to(env.device)
         trajectory_history = torch.concat(
             (trajectory_history[:, 1:], c_obs[:, :obs_dim].unsqueeze(1)),
             dim=1,
