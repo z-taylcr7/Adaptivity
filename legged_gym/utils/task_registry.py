@@ -99,6 +99,7 @@ class TaskRegistry:
         if args is None:
             args = get_args()
         # check if there is a registered env with that name
+        print(self.task_classes)
         if name in self.task_classes:
             task_class = self.get_task_class(name)
         else:

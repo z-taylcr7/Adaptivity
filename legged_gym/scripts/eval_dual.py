@@ -28,24 +28,20 @@
 #
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
-from legged_gym import LEGGED_GYM_ROOT_DIR
+import argparse
 import os
 import time
 
 import gym
-import isaacgym
-from legged_gym.envs import *
-from legged_gym.utils import (
-    get_args,
-    export_policy_as_jit,
-    task_registry,
-    Logger,
-    get_load_path,
-)
-
 import numpy as np
+
+
+import isaacgym
 import torch
-import argparse
+from legged_gym import LEGGED_GYM_ROOT_DIR
+from legged_gym.envs import *
+from legged_gym.utils import (Logger, export_policy_as_jit, get_args,
+                              get_load_path, task_registry)
 
 tracking_errors = {}
 
@@ -82,7 +78,7 @@ def play(args):
     env_cfg.terrain.num_cols = 8
     env_cfg.terrain.curriculum = False
     if not env_cfg.eval.eval_mode:
-        env_cfg.commands.ranges.lin_vel_x = [0.5, 0.5]
+        env_cfg.commands.ranges.lin_vel_x = [0.5, 1.0]
         env_cfg.commands.ranges.lin_vel_y = [0.0, 0.0]
         env_cfg.commands.ranges.ang_vel_yaw = [0.0, 0.0]
         env_cfg.commands.ranges.heading = [0.0, 0.0]
@@ -116,7 +112,7 @@ def play(args):
     train_cfg.runner.policy_class_name = "DualActorCritic"
     train_cfg.runner_class_name = "DualPolicyRunner"
     train_cfg.policy.net_type = train_cfg.runner.load_run.split("/")[0].split("_")[1]
-    train_cfg.policy.net_type = "discrete_transformer"
+    # train_cfg.policy.net_type = "discrete_transformer"
     if train_cfg.policy.net_type == "teacher":
         env_cfg.terrain.measure_heights = True
         env_cfg.env.privileged_obs = True
@@ -127,6 +123,7 @@ def play(args):
         1,
         int(train_cfg.runner.load_run.split("/")[1].split("_")[1].split("=")[1]),
     ]
+    # train_cfg.policy.history_lengths = [1,264]
     train_cfg.policy.num_latent = int(
         train_cfg.runner.load_run.split("/")[1].split("_")[0].split("=")[1]
     )

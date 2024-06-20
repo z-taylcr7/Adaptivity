@@ -34,9 +34,10 @@ from .base_config import BaseConfig
 class LeggedRobotCfg(BaseConfig):
     class env:
         num_envs = 4096
-        num_observations = 48
-        privileged_obs = False
+        num_observations = 48  # 48
         num_privileged_obs = None  # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise
+        privileged_dim = 203
+        privileged_obs = False
         num_actions = 12
         env_spacing = 3.0  # not used with heightfields/trimeshes
         send_timeouts = True  # send time out information to the algorithm
@@ -52,7 +53,7 @@ class LeggedRobotCfg(BaseConfig):
         dynamic_friction = 1.0
         restitution = 0.0
         # rough terrain only:
-        measure_heights = True
+        measure_heights = False
         measured_points_x = [
             -0.8,
             -0.7,
@@ -75,14 +76,14 @@ class LeggedRobotCfg(BaseConfig):
         measured_points_y = [-0.5, -0.4, -0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
         selected = False  # select a unique terrain type and pass all arguments
         terrain_kwargs = None  # Dict of arguments for selected terrain
-        max_init_terrain_level = 5  # starting curriculum state
+        max_init_terrain_level = 0  # starting curriculum state
         terrain_length = 8.0
         terrain_width = 8.0
         num_rows = 10  # number of terrain rows (levels)
         num_cols = 20  # number of terrain cols (types)
         # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete]
-        # terrain_proportions = [0.5, 0.5,0,0,0]
-        terrain_proportions = [0.1, 0.1, 0.35, 0.25, 0.2]
+        # terrain_proportions = [0.1, 0.1, 0.35, 0.25, 0.2]
+        terrain_proportions = [0.2, 0.1, 0.0, 0.0, 0.0, 0.7]
         # trimesh only:
         slope_treshold = (
             0.75  # slopes above this threshold will be corrected to vertical surfaces
@@ -96,14 +97,20 @@ class LeggedRobotCfg(BaseConfig):
         heading_command = True  # if true: compute ang vel command from heading error
 
         class ranges:
-            # lin_vel_x = [0.0, 1.0]  # min max [m/s]
-            # lin_vel_y = [0.0, 1.0]  # min max [m/s]
-            # ang_vel_yaw = [0, 0]  # min max [rad/s]
-            # heading = [0, 0]
-            lin_vel_x = [-1.0, 1.0]  # min max [m/s]
-            lin_vel_y = [-0.1, 0.1]  # min max [m/s]
+            lin_vel_x = [-0.5, 3.0]  # min max [m/s]
+            lin_vel_y = [-1.0, 1.0]  # min max [m/s]
             ang_vel_yaw = [-1, 1]  # min max [rad/s]
             heading = [-3.14, 3.14]
+
+            # lin_vel_x = [-0.4, 0.8]  # min max [m/s]
+            # lin_vel_y = [-0.2, 0.2]  # min max [m/s]
+            # ang_vel_yaw = [-0.2, 0.2]  # min max [rad/s]
+            # heading = [-3.14 / 4, 3.14 / 4]
+
+            # lin_vel_x = [-1.0, 1.0]  # min max [m/s]
+            # lin_vel_y = [-0.1, 0.1]  # min max [m/s]
+            # ang_vel_yaw = [-1, 1]  # min max [rad/s]
+            # heading = [-3.14 / 4, 3.14 / 4]
 
     class init_state:
         pos = [0.0, 0.0, 1.0]  # x,y,z [m]
@@ -151,15 +158,15 @@ class LeggedRobotCfg(BaseConfig):
 
     class domain_rand:
         randomize_friction = True
-        friction_range = [0.05, 1.75]
+        friction_range = [0.5, 1.25]
         randomize_base_mass = True
-        added_mass_range = [-2.0, 5.0]
-        randomize_kp_kd = True
-        kp_range = [23.0, 33.0]
-        kd_range = [0.60, 0.80]
+        added_mass_range = [0.0, 2.0]
         push_robots = True
         push_interval_s = 15
         max_push_vel_xy = 1.0
+        randomize_kp_kd = True
+        kp_range = [23.0, 33.0]
+        kd_range = [0.60, 0.80]
         randomize_dof_bias = False
         max_dof_bias = 0.08
         randomize_timer_minus = (
@@ -188,24 +195,24 @@ class LeggedRobotCfg(BaseConfig):
         motor_strength_range = [0.9, 1.1]
         randomize_action_latency = False
         randomize_obs_latency = False
-        latency_range = [0.00, 0.006]
+        latency_range = [0.00, 0.00]
 
     class rewards:
         class scales:
-            termination = -0.0
+            termination = -0.0  # -10.0
             tracking_lin_vel = 1.0
             tracking_ang_vel = 0.5
-            lin_vel_z = -2.0
+            lin_vel_z = -2.0  #
             ang_vel_xy = -0.05
             orientation = -0.0
-            torques = -0.0002
-            dof_vel = -0.0
-            dof_acc = -2.5e-7
-            base_height = -0.0
+            torques = -0.00001
+            dof_vel = -0.0  #
+            dof_acc = -2.5e-7  #
+            base_height = -0.0  # -0.01
             feet_air_time = 1.0
             collision = -1.0
             feet_stumble = -0.0
-            action_rate = -0.01
+            action_rate = -0.01  # -0.02
             stand_still = -0.0
 
         only_positive_rewards = True  # if true negative total rewards are clipped at zero (avoids early termination problems)
@@ -215,6 +222,7 @@ class LeggedRobotCfg(BaseConfig):
         )
         soft_dof_vel_limit = 1.0
         soft_torque_limit = 1.0
+
         base_height_target = 1.0
         max_contact_force = 100.0  # forces above this value are penalized
 
@@ -224,6 +232,7 @@ class LeggedRobotCfg(BaseConfig):
             ang_vel = 0.25
             dof_pos = 1.0
             dof_vel = 0.05
+            foot_contact = 0.1
             height_measurements = 5.0
 
         clip_observations = 100.0
@@ -307,21 +316,18 @@ class LeggedRobotCfgPPO(BaseConfig):
     runner_class_name = "TeacherPolicyRunner"
 
     class policy:
-
         init_noise_std = 1.0
         actor_hidden_dims = [512, 256, 128]
         critic_hidden_dims = [512, 256, 128]
-        # actor_hidden_dims = [64, 32]
-        # critic_hidden_dims = [64, 32]
         activation = "elu"  # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
-        # add_action = 3  # 00: no action, 01: add action only at long hist, 10: add action only at short hist, 11: add action both at short and long hist
-        net_type = "discrete-transformer"  # can be mlp, lstm, gru, cnn, transformer
-        num_latent = 12
-        transformer_direct_act = True  # add an fc for transformer or not. Activated if net_type="transformer"
-        history_lengths = [1, 264]
         # only for 'ActorCriticRecurrent':
+        # rnn_type = 'lstm'
         # rnn_hidden_size = 512
         # rnn_num_layers = 1
+        net_type = "discrete_transformer"  # can be mlp, lstm, gru, cnn, transformer
+        transformer_direct_act = True  # add an fc for transformer or not. Activated if net_type="transformer"
+        num_latent = 12  # if net_type="transformer" and transformer_direct_act=True, set to number of actions.
+        history_lengths = [1, 4 * 66]
 
     class algorithm:
         # training params
@@ -350,6 +356,6 @@ class LeggedRobotCfgPPO(BaseConfig):
         run_name = ""
         # load and resume
         resume = False
-        load_run = "teacher"  # -1 = last run
+        load_run = -1  # -1 = last run
         checkpoint = -1  # -1 = last saved model
         resume_path = None  # updated from load_run and chkpt

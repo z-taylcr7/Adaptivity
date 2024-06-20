@@ -157,7 +157,7 @@ class DualHistEncoder(nn.Module):
             self.direct_act = transformer_direct_act
             if not self.direct_act:
                 self.transformer_fc = nn.Linear(self.action_dim, y_dim)
-        elif self.net_type == "discrete_transformer":
+        elif self.net_type == "discrete-transformer":
             self.discrete_array = np.arange(0, 4 * 66, 4)
             self.discrete_array = torch.as_tensor(
                 self.discrete_array, dtype=torch.long, device=device
@@ -270,7 +270,7 @@ class DualHistEncoder(nn.Module):
             y = self.transformer(timesteps, states, actions)
             if not self.direct_act:
                 y = self.transformer_fc(y)
-        elif self.net_type == "discrete_transformer":
+        elif self.net_type == "discrete-transformer":
             # discrete_history = torch.zeros(
             #     history.shape[0], len(self.discrete_array), self.obs_dim
             # )
